@@ -1,0 +1,25 @@
+﻿<Window
+    x:Class="KLC_Finch.WindowViewerV4"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:KLC_Finch"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    Title="WindowViewer V4"
+    Width="1000"
+    Height="600"
+    Activated="Window_Activated"
+    Closing="Window_Closing"
+    Deactivated="Window_Deactivated"
+    KeyDown="Window_KeyDown"
+    KeyboardNavigation.TabNavigation="None"
+    PreviewKeyDown="Window_PreviewKeyDown"
+    StateChanged="Window_StateChanged"
+    WindowStartupLocation="CenterScreen"
+    mc:Ignorable="d">
+    <local:ControlViewer
+        x:Name="controlViewer"
+        Width="Auto"
+        Height="Auto" />
+</Window>
