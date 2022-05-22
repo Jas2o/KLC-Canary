@@ -52,6 +52,7 @@ namespace KLC {
 #if DEBUG
                     Console.WriteLine("A Close");
 #endif
+                    Session.Callback?.Invoke(2);
                     ConnectionManager.Disconnect(Session.RandSessionGuid, 0);
                     /*
                     if(App.alternative != null) {
@@ -68,14 +69,34 @@ namespace KLC {
                     if (message.Contains("PeerOffline")) {
                         //{"agentId":"429424626294329","type":"UserInterfaceStatus","data":{"relayError":"PeerOffline","sessionId":"y1d+uY2pEsC5dmpm43UjGg==","status":"ConnectedWithError"}}
 #if DEBUG
-                        Console.WriteLine("Closing A because the agent is offline.");
+                        //Console.WriteLine("Closing A because the agent is offline.");
+                        Console.WriteLine("A: Endpoint is offline, will retry.");
 #endif
-                        HasCompleted = true;
-                        Close();
+                        Session.Callback?.Invoke(0);
+                        Task.Delay(10000).Wait(); // 10 seconds
+                        ServerOnOpen(socket);
+                        //HasCompleted = true;
+                        //Close();
                     } else {
-                        if (message.Contains("Error")) {
+                        Session.Callback?.Invoke(5);
+
+                        if (message.Contains("PeerToPeerFailure"))
+                        {
+#if DEBUG
+                            //Console.WriteLine("Closing A because the agent is offline.");
+                            Console.WriteLine("A: PeerToPeerFailure");
+#endif
+
+                            //Session.Callback?.Invoke(0);
+                            Task.Delay(10000).Wait(); // 10 seconds
+                            ServerOnOpen(socket);
+                        }
+                        else if (message.Contains("Error"))
+                        {
                             App.ShowUnhandledExceptionFromSrc(message, "Websocket A - Unexpected");
-                        } else {
+                        }
+                        else
+                        {
 #if DEBUG
                             Console.WriteLine("Unexpected A message: " + message);
 #endif
@@ -106,17 +127,17 @@ namespace KLC {
             if (useInternalMITM) //or WsM.CertificateExists()
             {
                 files = new string[] {
-                    @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.org.exe",
+                    //@"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.org.exe",
                     @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.exe",
-                    Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.org.exe"),
+                    //Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.org.exe"),
                     Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.exe")
                 };
             }
             else {
                 files = new string[] {
-                    @"C:\Program Files\Kaseya Live Connect\Kaseya.AdminEndpoint.org.exe",
+                    //@"C:\Program Files\Kaseya Live Connect\Kaseya.AdminEndpoint.org.exe",
                     @"C:\Program Files\Kaseya Live Connect\Kaseya.AdminEndpoint.exe",
-                    Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect\Kaseya.AdminEndpoint.org.exe"),
+                    //Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect\Kaseya.AdminEndpoint.org.exe"),
                     Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect\Kaseya.AdminEndpoint.exe")
                 };
             }

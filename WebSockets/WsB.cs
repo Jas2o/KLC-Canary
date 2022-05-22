@@ -164,12 +164,9 @@ namespace KLC {
 #endif
 
             if(socket.ConnectionInfo.Path.StartsWith("/control/agent")) {
-                ConnectionManager.Disconnect(Session.RandSessionGuid, 1);
-                /*
-                if (App.alternative != null) {
-                    App.alternative.Disconnect(Session.RandSessionGuid, 1);
-                }
-                */
+                Console.WriteLine("B disconnect (control/agent)");
+                Session.Callback?.Invoke(3);
+                //ConnectionManager.Disconnect(Session.RandSessionGuid, 1);
             }
             
             if (socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/") || socket.ConnectionInfo.Path.StartsWith("/control/agent")) {
@@ -194,7 +191,7 @@ namespace KLC {
                 case "/control/agent":
                     ServerBsocketControlAgent = socket;
                     clientPortControlAgent = clientPort;
-                    Session.Callback?.Invoke();
+                    Session.Callback?.Invoke(1);
                     break;
 
                 case "/app/dashboard":

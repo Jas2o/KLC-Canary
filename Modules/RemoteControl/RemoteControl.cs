@@ -89,7 +89,9 @@ namespace KLC_Finch {
                 App.winStandaloneViewer = new WindowViewerV4();
                 App.winStandaloneViewer.Show();
                 ConnectionManager.Viewer = App.winStandaloneViewer.controlViewer;
-            }
+            } else
+                WindowUtilities.ActivateWindow(App.winStandaloneViewer);
+
             //if (ConnectionManager.Active.LCSession.WebsocketB == null || !ConnectionManager.Active.LCSession.WebsocketB.ControlAgentIsReady())
             //return;
             //if (ConnectionManager.Active.RC != null && ConnectionManager.Active.RC.state.connectionStatus != ConnectionStatus.Disconnected)

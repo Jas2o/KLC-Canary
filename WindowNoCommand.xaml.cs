@@ -85,7 +85,7 @@ namespace KLC_Finch
         {
             if (thisAgentID != null)
             {
-                App.winStandalone = new WindowAlternative(thisAgentID, txtAuthToken.Password, true, Enums.RC.Shared);
+                App.winStandalone = new WindowAlternative(thisAgentID, txtAuthToken.Password, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
                 App.winStandalone.Show();
                 btnLaunchCharm.IsEnabled = false;
             }
@@ -143,7 +143,7 @@ namespace KLC_Finch
                 return;
 
             if (Keyboard.IsKeyDown(Key.LeftShift))
-                App.winStandalone = new WindowAlternative(selected.Value, txtAuthToken.Password, true, Enums.RC.Shared);
+                App.winStandalone = new WindowAlternative(selected.Value, txtAuthToken.Password, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
             else
                 App.winStandalone = new WindowAlternative(selected.Value, txtAuthToken.Password);
             App.winStandalone.Show();

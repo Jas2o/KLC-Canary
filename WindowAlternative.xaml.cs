@@ -20,6 +20,7 @@ namespace KLC_Finch
         private string agentID;
         private string shortToken;
 
+        private OnConnect directAction;
         private RC directToMode;
         private bool dashLoaded;
 
@@ -43,7 +44,7 @@ namespace KLC_Finch
         /// <param name="shortToken"></param>
         /// <param name="directToRemoteControl"></param>
         /// <param name="directToMode"></param>
-        public WindowAlternative(string agentID, string shortToken, bool directToRemoteControl = false, RC directToMode = RC.Shared)
+        public WindowAlternative(string agentID, string shortToken, OnConnect directAction = OnConnect.NoAction, RC directToMode = RC.Shared)
         {
             InitializeComponent();
 
@@ -53,6 +54,7 @@ namespace KLC_Finch
 
             this.agentID = agentID;
             this.shortToken = shortToken;
+            this.directAction = directAction;
             this.directToMode = directToMode;
             socketActive = true;
 
@@ -74,7 +76,7 @@ namespace KLC_Finch
             }
             if (vcRuntimeBld < 23026)
             { //2015
-                directToRemoteControl = false;
+                this.directAction = OnConnect.NoAction;
                 new WindowException("Visual C++ Redistributable (x86) is not 2015 or above. You can download from:\r\n\r\nhttps://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0", "Dependency check").ShowDialog();
             }
 
@@ -88,7 +90,8 @@ namespace KLC_Finch
                 }
             }
 
-            WindowCharm.HasConnected callback = (directToRemoteControl ? new WindowCharm.HasConnected(ConnectDirect) : new WindowCharm.HasConnected(ConnectNotDirect));
+            //WindowCharm.HasConnected callback = (directToRC ? new WindowCharm.HasConnected(ConnectDirect) : new WindowCharm.HasConnected(ConnectNotDirect));
+            WindowCharm.StatusCallback callback = new WindowCharm.StatusCallback(StatusUpdate);
             Connection conn = ConnectionManager.AddReal(agentID, shortToken, callback, this);
             session = conn.LCSession;
             if (session.Eirc == null)
@@ -132,29 +135,95 @@ namespace KLC_Finch
 
             socketActive = false;
 
+            /*
             Application.Current.Dispatcher.Invoke((Action)delegate {
                 switch(reason) {
                     case 0:
-                        txtDisconnected.Text = "Endpoint Unavailable (Web Socket A)";
-                        borderDisconnected.Background = new SolidColorBrush(Colors.DarkOrange);
+                        txtStatus.Text = "Endpoint Unavailable (Web Socket A)";
+                        borderStatus.Background = new SolidColorBrush(Colors.DarkOrange);
                         break;
 
                     case 1:
-                        txtDisconnected.Text = "Endpoint Disconnected (Web Socket B)";
-                        borderDisconnected.Background = new SolidColorBrush(Colors.Maroon);
+                        txtStatus.Text = "Endpoint Disconnected (Web Socket B)";
+                        borderStatus.Background = new SolidColorBrush(Colors.Maroon);
                         break;
 
                     case 2:
-                        txtDisconnected.Text = "Manual Disconnection";
-                        borderDisconnected.Background = new SolidColorBrush(Colors.DimGray);
+                        txtStatus.Text = "Manual Disconnection";
+                        borderStatus.Background = new SolidColorBrush(Colors.DimGray);
                         break;
                 }
                 
-                borderDisconnected.Visibility = Visibility.Visible;
+                borderStatus.Visibility = Visibility.Visible;
             });
+            */
+        }
+
+        public delegate void StatusCallback(int status);
+        private SolidColorBrush brushBlue1 = new SolidColorBrush(Colors.DeepSkyBlue);
+        private SolidColorBrush brushBlue2 = new SolidColorBrush(Colors.MidnightBlue);
+        public void StatusUpdate(int status)
+        {
+            if (status == 1 && directAction != OnConnect.NoAction)
+                session.ModuleRemoteControl = new RemoteControl(session, directToMode);
+
+            Application.Current.Dispatcher.Invoke((Action)delegate
+            {
+                switch (status)
+                {
+                    case 0:
+                        if(directAction != OnConnect.NoAction)
+                            txtStatus.Text = "Attempting to connect and open Remote Control...";
+                        else
+                            txtStatus.Text = "Attempting to connect...";
+
+                        borderStatus.Background = (borderStatus.Background == brushBlue1 ? brushBlue2 : brushBlue1);
+                        borderStatus.Background = new SolidColorBrush(Colors.DeepSkyBlue);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+                    case 1:
+                        txtStatus.Text = "Connected";
+                        borderStatus.Background = new SolidColorBrush(Colors.Green);
+                        borderStatus.Visibility = Visibility.Collapsed;
+                        ConnectUpdateUI();
+                        if (directAction != OnConnect.NoAction)
+                            session.ModuleRemoteControl.Connect();
+                        if (directAction == OnConnect.OnlyRC)
+                            this.Visibility = Visibility.Collapsed;
+                        break;
+
+                    case 2:
+                        txtStatus.Text = "Endpoint Unavailable (Web Socket A)";
+                        borderStatus.Background = new SolidColorBrush(Colors.DarkOrange);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+
+                    case 3:
+                        txtStatus.Text = "Endpoint Disconnected (Web Socket B)";
+                        borderStatus.Background = new SolidColorBrush(Colors.Maroon);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+
+                    case 4:
+                        txtStatus.Text = "Manual Disconnection";
+                        borderStatus.Background = new SolidColorBrush(Colors.DimGray);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+                    default:
+                        Console.WriteLine("Status unknown: " + status);
+                        txtStatus.Text = "Status unknown: " + status;
+                        borderStatus.Background = new SolidColorBrush(Colors.Magenta);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+                }
+            });
+
+            if (status == 1 && directAction != OnConnect.NoAction)
+                directAction = OnConnect.NoAction;
         }
 
         public delegate void HasConnected();
+
         public void ConnectDirect() {
             session.ModuleRemoteControl = new RemoteControl(session, directToMode);
             Application.Current.Dispatcher.Invoke((Action)delegate {
@@ -225,7 +294,11 @@ namespace KLC_Finch
 
         private void btnRCShared_Click(object sender, RoutedEventArgs e) {
             if (App.winCharm != null || session == null || session.WebsocketB == null || !session.WebsocketB.ControlAgentIsReady())
+            {
+                directAction = OnConnect.AlsoRC;
+                directToMode = RC.Shared;
                 return;
+            }
             if(session.ModuleRemoteControl != null)
                 session.ModuleRemoteControl.CloseViewer();
 
@@ -235,7 +308,10 @@ namespace KLC_Finch
 
         private void btnRCPrivate_Click(object sender, RoutedEventArgs e) {
             if (App.winCharm != null || session == null || session.WebsocketB == null || !session.WebsocketB.ControlAgentIsReady())
+            {
+                directAction = OnConnect.NoAction;
                 return;
+            }
             if (session.ModuleRemoteControl != null)
                 session.ModuleRemoteControl.CloseViewer();
 
@@ -271,7 +347,10 @@ namespace KLC_Finch
             int tempWidth = (int)this.Width;
             int tempHeight = (int)this.Height;
 
-            App.winStandalone = new WindowAlternative(agentID, shortToken);
+            if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible && session.ModuleRemoteControl.mode == RC.Shared)
+                App.winStandalone = new WindowAlternative(agentID, shortToken, OnConnect.AlsoRC, RC.Shared);
+            else
+                App.winStandalone = new WindowAlternative(agentID, shortToken);
             App.winStandalone.Show();
             App.winStandalone.Left = tempLeft;
             App.winStandalone.Top = tempTop;
@@ -357,5 +436,6 @@ namespace KLC_Finch
             string logs = session.agent.GetAgentRemoteControlLogs();
             MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
         }
+
     }
 }

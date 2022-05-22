@@ -113,7 +113,43 @@ namespace KLC_Finch
             });
         }
 
+        public delegate void StatusCallback(int status);
+        public void StatusUpdate(int status)
+        {
+            switch(status)
+            {
+                case 0:
+                    Console.WriteLine("Status 0: Connection attempt in progress");
+                    break;
+                case 1:
+                    Console.WriteLine("Status 1: Connected");
+                    break;
+
+                case 2:
+                    Console.WriteLine("Status 2: Endpoint Unavailable (Web Socket A)");
+                    //txtStatus.Text = "Endpoint Unavailable (Web Socket A)";
+                    //borderStatus.Background = new SolidColorBrush(Colors.DarkOrange);
+                    break;
+
+                case 3:
+                    Console.WriteLine("Status 3: Endpoint Disconnected (Web Socket B)");
+                    //txtStatus.Text = "Endpoint Disconnected (Web Socket B)";
+                    //borderStatus.Background = new SolidColorBrush(Colors.Maroon);
+                    break;
+
+                case 4:
+                    Console.WriteLine("Status 4: Manual Disconnection");
+                    //txtStatus.Text = "Manual Disconnection";
+                    //borderStatus.Background = new SolidColorBrush(Colors.DimGray);
+                    break;
+                default:
+                    Console.WriteLine("Status unknown: " + status);
+                    break;
+            }
+        }
+
         public delegate void HasConnected();
+       
         public void ConnectDirect()
         {
             //session.ModuleRemoteControl = new RemoteControl(session, directToMode);
@@ -392,7 +428,8 @@ namespace KLC_Finch
                     btnAlt.IsEnabled = btnRCAdd.IsEnabled = false;
 
                     bool directToRemoteControl = false;
-                    HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
+                    //HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
+                    StatusCallback callback = new StatusCallback(StatusUpdate);
 
                     conn = ConnectionManager.AddReal(val, Kaseya.Token, /*this,*/ callback);
                     if (conn == null)

@@ -38,9 +38,9 @@ namespace KLC {
         public KLC_Finch.Modules.Processes ModuleProcesses;
         public Toolbox ModuleToolbox;
 
-        public WindowCharm.HasConnected Callback;
+        public WindowCharm.StatusCallback Callback;
 
-        public LiveConnectSession(string shortToken, string agentID, WindowCharm.HasConnected callback) {
+        public LiveConnectSession(string shortToken, string agentID, WindowCharm.StatusCallback callback) {
             agentGuid = agentID;
             shorttoken = shortToken;
             Callback = callback;

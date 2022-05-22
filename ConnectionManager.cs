@@ -47,7 +47,7 @@ namespace KLC_Finch
             return session;
         }
 
-        public static Connection AddReal(string agentID, string shortToken, WindowCharm.HasConnected callback, WindowAlternative winAlt=null)
+        public static Connection AddReal(string agentID, string shortToken, WindowCharm.StatusCallback callback, WindowAlternative winAlt=null)
         {
             if (agentID == null || shortToken == null)
                 return null;

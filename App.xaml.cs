@@ -128,11 +128,11 @@ namespace KLC_Finch {
                 if (command != null)
                 {
                     if (command.payload.navId == "remotecontrol/shared")
-                        winStandalone = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, Enums.RC.Shared);
+                        winStandalone = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
                     else if (command.payload.navId == "remotecontrol/private")
-                        winStandalone = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, Enums.RC.Private);
+                        winStandalone = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.Private);
                     else if (command.payload.navId == "remotecontrol/1-click")
-                        winStandalone = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, Enums.RC.OneClick);
+                        winStandalone = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.OneClick);
                     else
                         winStandalone = new WindowAlternative(command.payload.agentId, command.payload.auth.Token);
 

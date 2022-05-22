@@ -19,16 +19,13 @@
             <RowDefinition />
         </Grid.RowDefinitions>
 
-        <Border
-            x:Name="borderDisconnected"
-            Background="Maroon"
-            Visibility="Collapsed">
+        <Border x:Name="borderStatus" Background="Gray">
             <TextBlock
-                x:Name="txtDisconnected"
+                x:Name="txtStatus"
                 Margin="0,2"
                 HorizontalAlignment="Center"
                 Foreground="White"
-                Text="Disconnected" />
+                Text="Waiting for status update." />
         </Border>
 
         <TabControl x:Name="tabControl" Grid.Row="1">
