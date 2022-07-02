@@ -40,6 +40,16 @@
                                     IsChecked="{Binding AltModulesStartAutoMacStaticImage}" />
                             </StackPanel>
                         </GroupBox>
+                        <GroupBox Header="Being tested">
+                            <StackPanel>
+                                <CheckBox
+                                    x:Name="chkAltModulesDashboardRefresh"
+                                    Margin="0,5,0,0"
+                                    Content="Dashboard: auto refresh CPU/RAM"
+                                    IsChecked="{Binding AltModulesDashboardRefresh}"
+                                    ToolTip="May result in memory leak?" />
+                            </StackPanel>
+                        </GroupBox>
                     </StackPanel>
                     <!--<StackPanel Grid.Column="2">
                         <GroupBox Header="Other">

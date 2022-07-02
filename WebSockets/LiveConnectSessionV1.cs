@@ -38,9 +38,9 @@ namespace KLC {
         public KLC_Finch.Modules.Processes ModuleProcesses;
         public Toolbox ModuleToolbox;
 
-        public WindowCharm.StatusCallback Callback;
+        public WindowAlternative.StatusCallback Callback;
 
-        public LiveConnectSession(string shortToken, string agentID, WindowCharm.StatusCallback callback) {
+        public LiveConnectSession(string shortToken, string agentID, WindowAlternative.StatusCallback callback) {
             agentGuid = agentID;
             shorttoken = shortToken;
             Callback = callback;
@@ -48,6 +48,11 @@ namespace KLC {
             agent = new Agent(agentGuid);
 
             Auth = KaseyaAuth.ApiAuthX(shorttoken);
+            if (Auth == null)
+            {
+                Callback?.Invoke(Enums.EPStatus.AuthFailed);
+                return;
+            }
             shortToken = Auth.Token; //Works fine without this line, but it's something KLC does.
             Eal = Api15.EndpointsAdminLogin(shorttoken);
 

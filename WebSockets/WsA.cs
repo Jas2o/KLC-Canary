@@ -52,16 +52,10 @@ namespace KLC {
 #if DEBUG
                     Console.WriteLine("A Close");
 #endif
-                    Session.Callback?.Invoke(2);
+                    Session.Callback?.Invoke(EPStatus.UnavailableWsA);
                     ConnectionManager.Disconnect(Session.RandSessionGuid, 0);
-                    /*
-                    if(App.alternative != null) {
-                        App.alternative.Disconnect(Session.RandSessionGuid, 0);
-                    }
-                    */
+
                     if (Session.ModuleRemoteControl != null) {
-                        //string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "").Replace("?Y2", "");
-                        //Session.ModuleRemoteControl.Disconnect(sessionId);
                         Session.ModuleRemoteControl.Disconnect();
                     }
                 };
@@ -72,14 +66,12 @@ namespace KLC {
                         //Console.WriteLine("Closing A because the agent is offline.");
                         Console.WriteLine("A: Endpoint is offline, will retry.");
 #endif
-                        Session.Callback?.Invoke(0);
+                        Session.Callback?.Invoke(EPStatus.PeerOffline);
                         Task.Delay(10000).Wait(); // 10 seconds
                         ServerOnOpen(socket);
                         //HasCompleted = true;
                         //Close();
                     } else {
-                        Session.Callback?.Invoke(5);
-
                         if (message.Contains("PeerToPeerFailure"))
                         {
 #if DEBUG
@@ -87,7 +79,7 @@ namespace KLC {
                             Console.WriteLine("A: PeerToPeerFailure");
 #endif
 
-                            //Session.Callback?.Invoke(0);
+                            Session.Callback?.Invoke(EPStatus.PeerToPeerFailure);
                             Task.Delay(10000).Wait(); // 10 seconds
                             ServerOnOpen(socket);
                         }
@@ -127,17 +119,13 @@ namespace KLC {
             if (useInternalMITM) //or WsM.CertificateExists()
             {
                 files = new string[] {
-                    //@"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.org.exe",
                     @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.exe",
-                    //Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.org.exe"),
                     Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.exe")
                 };
             }
             else {
                 files = new string[] {
-                    //@"C:\Program Files\Kaseya Live Connect\Kaseya.AdminEndpoint.org.exe",
                     @"C:\Program Files\Kaseya Live Connect\Kaseya.AdminEndpoint.exe",
-                    //Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect\Kaseya.AdminEndpoint.org.exe"),
                     Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect\Kaseya.AdminEndpoint.exe")
                 };
             }
@@ -154,7 +142,8 @@ namespace KLC {
             if (process.StartInfo.FileName.Length > 0)
             {
                 process.StartInfo.Arguments = "-viewerport " + PortA;
-                process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                process.StartInfo.CreateNoWindow = true;
+                //process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 process.Start();
             }
 

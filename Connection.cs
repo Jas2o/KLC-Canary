@@ -15,6 +15,7 @@ namespace KLC_Finch
         public string Label { get; set; }
         public string GroupName { get; set; }
         public bool IsReal { get; private set; }
+        public int Attempt { get; private set; }
         public LiveConnectSession LCSession;
         private WindowAlternative WinAlternative;
         private IRemoteControl rc;
@@ -46,10 +47,10 @@ namespace KLC_Finch
             Label = label;
             GroupName = session.agent.MachineGroupReverse;
 
-            if (winAlt == null)
-                WinAlternative = new WindowAlternative(session);
-            else
-                WinAlternative = winAlt;
+            //if (winAlt == null)
+                //WinAlternative = new WindowAlternative(session);
+            //else
+            WinAlternative = winAlt;
             Control = new ConnectionGroupItem(this);
         }
 

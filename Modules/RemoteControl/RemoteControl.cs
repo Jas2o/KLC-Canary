@@ -37,6 +37,7 @@ namespace KLC_Finch {
         private IWebSocketConnection serverB;
         private System.Timers.Timer timerHeartbeat;
         private UploadRC fileUpload;
+        private bool IsMac;
 
         public RemoteControl(KLC.LiveConnectSession session, RC mode) {
             this.session = session;
@@ -136,6 +137,7 @@ namespace KLC_Finch {
             Viewer = windowViewerV4.controlViewer;
             Viewer.rcSwitch = this;
 
+            IsMac = (session.agent.OSTypeProfile == Agent.OSProfile.Mac);
             state.Start(Viewer.Settings, session.agent.OSTypeProfile, session.agent.UserLast);
             state.SetTitle(session.agent.Name, mode);
             windowViewerV4.Title = state.BaseTitle;
@@ -160,6 +162,7 @@ namespace KLC_Finch {
             Viewer = winCharm.controlViewer;
             Viewer.rcSwitch = this;
 
+            IsMac = (session.agent.OSTypeProfile == Agent.OSProfile.Mac);
             state.Start(Viewer.Settings, session.agent.OSTypeProfile, session.agent.UserLast);
             state.SetTitle(session.agent.Name, mode);
             winCharm.Title = state.BaseTitle;
@@ -180,14 +183,23 @@ namespace KLC_Finch {
         }
 
         public void Disconnect(/*string sessionId*/) {
-            if (decoder != null) {
-                lock (decoder) {
-                    decoder.Dispose();
-                    decoder = null;
+            try
+            {
+                if (decoder != null)
+                {
+                    lock (decoder)
+                    {
+                        decoder.Dispose();
+                        decoder = null;
+                    }
                 }
             }
+            catch (Exception)
+            {
+                //For some reason, decoder can be null after being checked that it wasn't null.
+            }
 
-            if(state != null)
+            if (state != null)
             {
                 state.connectionStatus = ConnectionStatus.Disconnected;
                 state.socketAlive = false;
@@ -314,12 +326,13 @@ namespace KLC_Finch {
                             if (decoder == null)
                                 decoder = new VP8.Decoder(); //Due to Soft Reconnect
                             lock (decoder) {
-                                b1 = decoder.Decode(remaining, 0);
+                                b1 = decoder.Decode(remaining, 0, IsMac);
                             }
                         } catch (Exception ex) {
                             Console.WriteLine("RC VP8 decode error: " + ex.ToString());
                         } finally {
                             if (b1 != null && !state.powerSaving) {
+                                /*
                                 if (state.CurrentScreen.RawWidth != b1.Width)
                                 {
                                     state.UseMultiScreenFixAvailable = true;
@@ -327,6 +340,7 @@ namespace KLC_Finch {
                                     state.CurrentScreen.RawHeight = b1.Height;
                                 }
                                 state.CurrentScreen.MouseScale = state.CurrentScreen.RawWidth / state.CurrentScreen.rect.Width;
+                                */
 
                                 if (state.CurrentScreen.Texture != null)
                                 {
@@ -338,10 +352,10 @@ namespace KLC_Finch {
                                         state.CurrentScreen.Texture.Load(/*rect,*/ b1);
                                     else
                                     {
-                                        state.legacyVirtualWidth = b1.Width;
-                                        state.legacyVirtualHeight = b1.Height;
-                                        //state.legacyVirtualWidth = rect.Width;
-                                        //state.legacyVirtualHeight = rect.Height;
+                                        //state.legacyVirtualWidth = b1.Width;
+                                        //state.legacyVirtualHeight = b1.Height;
+                                        state.legacyVirtualWidth = state.CurrentScreen.rect.Width;
+                                        state.legacyVirtualHeight = state.CurrentScreen.rect.Height;
                                         state.textureLegacy.Load(/*rect,*/ b1);
                                     }
                                     Viewer.NotifyScreenUpdate();
@@ -383,7 +397,7 @@ namespace KLC_Finch {
                             lock (decoder) {
                                 //This causes GC pressure
                                 if (App.TexDecodeMode == DecodeMode.RawYUV || captureScreen)
-                                    rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride);
+                                    rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride, IsMac);
                                 else
                                     rawYUV = decoder.DecodeRawBW(remaining, out rawWidth, out rawHeight, out rawStride);
                             }
@@ -398,6 +412,7 @@ namespace KLC_Finch {
                             */
 
                             if (rawWidth != 0 && rawHeight != 0 && !state.powerSaving) {
+                                /*
                                 if (state.CurrentScreen.RawWidth != rawWidth)
                                 {
                                     state.UseMultiScreenFixAvailable = true;
@@ -405,6 +420,7 @@ namespace KLC_Finch {
                                     state.CurrentScreen.RawHeight = rawHeight;
                                 }
                                 state.CurrentScreen.MouseScale = state.CurrentScreen.RawWidth / state.CurrentScreen.rect.Width;
+                                */
 
                                 if (state.CurrentScreen.Texture != null)
                                 {
@@ -416,10 +432,10 @@ namespace KLC_Finch {
                                         state.CurrentScreen.Texture.LoadRaw(/*state.CurrentScreen.rect,*/ rawWidth, rawHeight, rawStride, rawYUV);
                                     else
                                     {
-                                        //state.legacyVirtualWidth = rect.Width;
-                                        //state.legacyVirtualHeight = rect.Height;
-                                        state.legacyVirtualWidth = rawWidth;
-                                        state.legacyVirtualHeight = rawHeight;
+                                        state.legacyVirtualWidth = state.CurrentScreen.rect.Width;
+                                        state.legacyVirtualHeight = state.CurrentScreen.rect.Height;
+                                        //state.legacyVirtualWidth = rawWidth;
+                                        //state.legacyVirtualHeight = rawHeight;
                                         state.textureLegacy.LoadRaw(/*state.CurrentScreen.rect,*/ rawWidth, rawHeight, rawStride, rawYUV);
                                     }
                                     Viewer.NotifyScreenUpdate();
@@ -566,7 +582,7 @@ namespace KLC_Finch {
             //{"black_out_screen":0,"block_mouse_keyboard":1}
 
             JObject json = new JObject {
-                ["black_out_screen"] = (blackOutScreen ? 1 : 0), //This doesn't seem to work yet
+                ["black_out_screen"] = (blackOutScreen ? 1 : 2), //This doesn't seem to work yet
                 ["block_mouse_keyboard"] = (blockMouseKB ? 1 : 2)
             };
             SendJson(Enums.KaseyaMessageTypes.BlackScreenBlockInput, json.ToString());

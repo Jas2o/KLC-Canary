@@ -35,7 +35,7 @@ namespace KLC_Finch {
                 AppDomain.CurrentDomain.UnhandledException += (sender, args) => ShowUnhandledException(args.ExceptionObject as Exception, "AppDomain.CurrentDomain.UnhandledException");
                 TaskScheduler.UnobservedTaskException += (sender, args) =>
                 {
-                    ShowUnhandledException(args.Exception, "TaskScheduler.UnobservedTaskException");
+                    ShowUnhandledExceptionFromSrc(args.Exception, "TaskScheduler.UnobservedTaskException");
                     args.SetObserved();
                 };
 
@@ -48,7 +48,7 @@ namespace KLC_Finch {
 
             Version = KLC_Finch.Properties.Resources.BuildDate.Trim();
 
-            string pathSettings = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\KLC-Finch-config.json";
+            string pathSettings = System.IO.Path.GetDirectoryName(Environment.ProcessPath) + "\\KLC-Finch-config.json";
             if (File.Exists(pathSettings))
                 Settings = JsonSettings.Load<Settings>(pathSettings);
             else
@@ -105,7 +105,7 @@ namespace KLC_Finch {
                 if(args[i].StartsWith("liveconnect:///")) {
                     if(useCharm && !createdNew)
                     {
-                        NamedPipeListener<string>.SendMessage(appName, true, args[i]);
+                        NamedPipeListener.SendMessage(appName, true, args[i]);
                         Environment.Exit(0);
                     } else
                         command = KLCCommand.NewFromBase64(args[i].Replace("liveconnect:///", ""));
@@ -118,7 +118,7 @@ namespace KLC_Finch {
             if (useCharm)
             {
                 if(!createdNew) {
-                    NamedPipeListener<string>.SendMessage(App.appName, true, "focus");
+                    NamedPipeListener.SendMessage(App.appName, true, "focus");
                     Environment.Exit(0);
                 }
                 winCharm = new WindowCharm();

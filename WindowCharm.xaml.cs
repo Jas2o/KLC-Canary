@@ -28,7 +28,7 @@ namespace KLC_Finch
         //private IRemoteControl rc;
         //private RCv rcv;
         //private RCstate state;
-        private readonly NamedPipeListener<string> pipeListener;
+        private readonly NamedPipeListener pipeListener;
 
         public WindowCharm()
         {
@@ -57,7 +57,7 @@ namespace KLC_Finch
             {
                 try
                 {
-                    pipeListener = new NamedPipeListener<string>(App.appName, true);
+                    pipeListener = new NamedPipeListener(App.appName, true);
                     pipeListener.MessageReceived += (sender, e) =>
                     {
                         //System.Windows.MessageBox.Show(e.Message);
@@ -89,12 +89,12 @@ namespace KLC_Finch
                 {
                     if (args[i].StartsWith("liveconnect:///"))
                     {
-                        NamedPipeListener<string>.SendMessage(App.appName, true, args[i]);
+                        NamedPipeListener.SendMessage(App.appName, true, args[i]);
                         Environment.Exit(0);
                     }
                 }
 
-                NamedPipeListener<string>.SendMessage(App.appName, true, "focus");
+                NamedPipeListener.SendMessage(App.appName, true, "focus");
                 Environment.Exit(0);
             }
 
@@ -113,40 +113,13 @@ namespace KLC_Finch
             });
         }
 
-        public delegate void StatusCallback(int status);
-        public void StatusUpdate(int status)
+        /*
+        public delegate void StatusCallback(EPStatus status);
+        public void StatusUpdate(EPStatus status)
         {
-            switch(status)
-            {
-                case 0:
-                    Console.WriteLine("Status 0: Connection attempt in progress");
-                    break;
-                case 1:
-                    Console.WriteLine("Status 1: Connected");
-                    break;
-
-                case 2:
-                    Console.WriteLine("Status 2: Endpoint Unavailable (Web Socket A)");
-                    //txtStatus.Text = "Endpoint Unavailable (Web Socket A)";
-                    //borderStatus.Background = new SolidColorBrush(Colors.DarkOrange);
-                    break;
-
-                case 3:
-                    Console.WriteLine("Status 3: Endpoint Disconnected (Web Socket B)");
-                    //txtStatus.Text = "Endpoint Disconnected (Web Socket B)";
-                    //borderStatus.Background = new SolidColorBrush(Colors.Maroon);
-                    break;
-
-                case 4:
-                    Console.WriteLine("Status 4: Manual Disconnection");
-                    //txtStatus.Text = "Manual Disconnection";
-                    //borderStatus.Background = new SolidColorBrush(Colors.DimGray);
-                    break;
-                default:
-                    Console.WriteLine("Status unknown: " + status);
-                    break;
-            }
+            Console.WriteLine(status.ToString());
         }
+        */
 
         public delegate void HasConnected();
        
@@ -360,10 +333,11 @@ namespace KLC_Finch
             {
                 btnAlt.IsEnabled = btnRCAdd.IsEnabled = false;
 
-                bool directToRemoteControl = false;
-                HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
+                //bool directToRemoteControl = false;
+                //HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
 
-                Connection conn = ConnectionManager.AddTest(winTest.ReturnValue, winTest.ReturnMac, callback);
+                //WindowAlternative.StatusCallback callback = new WindowAlternative.StatusCallback(StatusUpdate);
+                Connection conn = ConnectionManager.AddTest(winTest.ReturnValue, winTest.ReturnMac, null);
                 AddConnectionToUI(conn, "Test");
             }
         }
@@ -420,21 +394,20 @@ namespace KLC_Finch
 
         private void AddReal(string val)
         {
-            Connection conn = null;
             try
             {
                 if (val.Length > 0)
                 {
                     btnAlt.IsEnabled = btnRCAdd.IsEnabled = false;
 
-                    bool directToRemoteControl = false;
-                    //HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
-                    StatusCallback callback = new StatusCallback(StatusUpdate);
+                    //WindowAlternative.StatusCallback callback = new WindowAlternative.StatusCallback(StatusUpdate);
+                    //WindowAlternative.StatusCallback callback = null;
+                    //conn = ConnectionManager.AddReal(val, Kaseya.Token, /*this,*/ callback);
 
-                    conn = ConnectionManager.AddReal(val, Kaseya.Token, /*this,*/ callback);
-                    if (conn == null)
+                    WindowAlternative winAlt = new WindowAlternative(val, Kaseya.Token);
+                    if (winAlt.conn == null)
                         return;
-                    AddConnectionToUI(conn, conn.LCSession.agent.MachineGroupReverse);
+                    AddConnectionToUI(winAlt.conn, winAlt.conn.LCSession.agent.MachineGroupReverse);
                 }
             }
             catch (Exception)

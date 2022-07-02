@@ -24,6 +24,7 @@ namespace KLC_Finch {
         private dynamic screenLayoutJson;
         private string screenStr;
         private Thread threadTest;
+        private static CancellationTokenSource threadCTokenSource;
         private bool retina;
         private Agent.OSProfile OSTypeProfile;
 
@@ -77,7 +78,8 @@ namespace KLC_Finch {
             Viewer.UpdateScreenLayout(screenStr);
 
             Viewer.SetControlEnabled(state, true, true);
-            
+
+            threadCTokenSource = new CancellationTokenSource();
             threadTest = new Thread(() => {
                 Loop();
             });
@@ -86,8 +88,8 @@ namespace KLC_Finch {
 
         public void LoopStop() {
             if (threadTest != null) {
-                threadTest.Abort();
-                threadTest.Join();
+                threadCTokenSource.Cancel();
+                threadTest.Join(1000);
             }
         }
 

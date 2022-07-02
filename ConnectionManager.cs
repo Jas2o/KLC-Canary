@@ -34,7 +34,7 @@ namespace KLC_Finch
         }
         */
 
-        public static Connection AddTest(string screenLayout, bool isMac, WindowCharm.HasConnected callback)
+        public static Connection AddTest(string screenLayout, bool isMac, WindowAlternative.StatusCallback callback)
         {
             Connection session = new Connection(new RemoteControlTest(screenLayout, isMac), "Test " + (TestNum++));
             listConnection.Add(session);
@@ -42,12 +42,12 @@ namespace KLC_Finch
 
             Viewer.rcSwitch = Active.RC;
 
-            callback?.Invoke();
+            callback?.Invoke(EPStatus.Connected);
 
             return session;
         }
 
-        public static Connection AddReal(string agentID, string shortToken, WindowCharm.StatusCallback callback, WindowAlternative winAlt=null)
+        public static Connection AddReal(string agentID, string shortToken, WindowAlternative.StatusCallback callback, WindowAlternative winAlt=null)
         {
             if (agentID == null || shortToken == null)
                 return null;

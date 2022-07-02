@@ -1,5 +1,6 @@
 ﻿using NTR;
 using OpenTK;
+using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Wpf;
 using System;
@@ -658,6 +659,7 @@ namespace KLC_Finch {
                 if (screenPointingTo == null)
                     return;
 
+                /*
                 if (screenPointingTo.MouseScale > 1.0)
                 {
                     //Not great, but progress for Macs?
@@ -668,6 +670,7 @@ namespace KLC_Finch {
 
                     point.X += screenPointingTo.screen_x;
                 }
+                */
                 ConnectionManager.Viewer.DebugMouseEvent((int)point.X, (int)point.Y);
 
                 if ((rc.state.UseMultiScreenOverview || rc.state.UseMultiScreenPanZoom) && rc.state.CurrentScreen.screen_id != screenPointingTo.screen_id) {

@@ -459,6 +459,7 @@ namespace KLC_Finch
                 rc.state.textureLegacy.LoadRaw(/*new Rectangle(0, 0, rc.state.CurrentScreen.rect.Width, rc.state.CurrentScreen.rect.Height),*/ width, height, stride, buffer);
             }
 
+            /*
             rc.state.UseMultiScreenFixAvailable = (rc.state.CurrentScreen.rect.Width != width);
             if (rc.state.UseMultiScreenFixAvailable)
             {
@@ -468,6 +469,7 @@ namespace KLC_Finch
                 if (rc.state.previousScreen == null)
                     ToolScreenFix_Click(null, null);
             }
+            */
             rc.state.socketAlive = true;
 
             fpsLast = fpsCounter.GetFPS();
@@ -1063,11 +1065,15 @@ namespace KLC_Finch
 
         private void toolOpenGLInfo_Click(object sender, RoutedEventArgs e)
         {
-            OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
-            MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
-
+            MessageBoxResult result = MessageBoxResult.OK;
             if (rcv is RCvOpenGLWPF)
-                ToolReconnect_Click(sender, e); //Issue with spawning an OpenGL when using GLControl
+                result = MessageBox.Show("Because you are using renderer GLWpfControl, you will need to manually reconnect Remote Control after this test. Would you like to proceed?", "KLC-Finch: OpenGL Info", MessageBoxButton.OKCancel);
+
+            if (result == MessageBoxResult.OK)
+            {
+                OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
+                MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
+            }
         }
 
         private void ToolOptions_Click(object sender, RoutedEventArgs e)
@@ -1605,6 +1611,7 @@ namespace KLC_Finch
             }
         }
 
+        /*
         private void ToolScreenFix_Click(object sender, RoutedEventArgs e)
         {
             if (rc == null || rc.state == null)
@@ -1628,6 +1635,7 @@ namespace KLC_Finch
             UpdateScreenLayoutReflow();
             rc.state.UseMultiScreenFixAvailable = false;
         }
+        */
 
     }
 }

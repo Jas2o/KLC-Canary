@@ -70,7 +70,7 @@ namespace KLC_Finch {
             if (session != null) { //Intentionally different
                 btnDashboardStartData.IsEnabled = false;
 
-                moduleDashboard = new Dashboard(session, txtDashboard, stackDisks, txtUtilisationRAM);
+                moduleDashboard = new Dashboard(session, txtDashboard, stackDisks, txtUtilisationRAM, txtUtilisationCPU, progressCPU, progressRAM);
                 session.ModuleDashboard = moduleDashboard;
             }
         }
@@ -168,6 +168,12 @@ namespace KLC_Finch {
         private void btnStaticImageDumpLayout_Click(object sender, RoutedEventArgs e)
         {
             Clipboard.SetDataObject(moduleStaticImage.DumpScreens());
+        }
+
+        public void UpdateTimer()
+        {
+            if (moduleDashboard != null)
+                moduleDashboard.UpdateTimer();
         }
     }
 }

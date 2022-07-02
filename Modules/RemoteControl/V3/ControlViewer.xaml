@@ -77,14 +77,14 @@
                 VerticalAlignment="Stretch"
                 Click="ToolScreenMode_Click"
                 Content="{Binding ScreenModeText, Mode=OneWay, FallbackValue='Multi'}" />
-            <Button
+            <!--<Button
                 x:Name="toolScreenFix"
                 VerticalAlignment="Stretch"
                 Background="Gold"
                 Click="ToolScreenFix_Click"
                 Content="Fix"
                 FontWeight="Bold"
-                Visibility="{Binding Path=UseMultiScreenFixAvailable, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />
+                Visibility="{Binding Path=UseMultiScreenFixAvailable, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />-->
             <Button
                 x:Name="toolScreenOverview"
                 VerticalAlignment="Stretch"
@@ -225,7 +225,7 @@
                         <MenuItem
                             x:Name="toolBlockScreen"
                             Click="ToolBlockScreen_Click"
-                            Header="Black Out Screen" />
+                            Header="Block Out Screen" />
                         <MenuItem
                             x:Name="toolBlockMouseKB"
                             Click="ToolBlockMouseKB_Click"

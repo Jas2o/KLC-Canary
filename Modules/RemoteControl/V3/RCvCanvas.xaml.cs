@@ -233,12 +233,13 @@ namespace KLC_Finch {
             rcCanvas.MouseWheel += HandleCanvasMouseWheel;
         }
 
+        public override void ControlUnload()
+        {
+        }
+
         private void HandleCanvasMouseLeave(object sender, MouseEventArgs e)
         {
             tempPanning = false;
-        }
-
-        public override void ControlUnload() {
         }
 
         public override void DisplayApproval(bool visible) {
@@ -482,6 +483,7 @@ namespace KLC_Finch {
                 if (screenPointingTo == null)
                     return;
 
+                /*
                 if (screenPointingTo.MouseScale > 1.0)
                 {
                     //Not great, but progress for Macs?
@@ -492,6 +494,7 @@ namespace KLC_Finch {
 
                     point.X += screenPointingTo.screen_x;
                 }
+                */
                 ConnectionManager.Viewer.DebugMouseEvent((int)point.X, (int)point.Y);
 
                 //Console.WriteLine(string.Format("{0},{1} of {2},{3}", point.X, point.Y, screenPointingTo.rectFixed.X, screenPointingTo.rectFixed.Y));

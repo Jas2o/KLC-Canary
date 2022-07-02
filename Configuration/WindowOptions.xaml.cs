@@ -61,7 +61,7 @@ namespace KLC_Finch {
             settings.MacSwapCtrlWin = true;
             settings.MacSafeKeys = true;
             settings.StartMultiScreen = true;
-            settings.StartMultiScreenExceptMac = true;
+            settings.StartMultiScreenExceptMac = false;
             settings.MultiAltFit = true;
             settings.MultiShowCursor = true;
             settings.ScreenSelectNew = true;
@@ -88,7 +88,7 @@ namespace KLC_Finch {
             settings.MacSwapCtrlWin = false;
             settings.MacSafeKeys = false;
             settings.StartMultiScreen = false;
-            settings.StartMultiScreenExceptMac = true;
+            settings.StartMultiScreenExceptMac = false;
             settings.MultiAltFit = false;
             settings.MultiShowCursor = false;
             settings.ScreenSelectNew = false;

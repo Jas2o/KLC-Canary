@@ -15,6 +15,10 @@ namespace KLC_Finch
     /// </summary>
     public partial class WindowAlternative : Window {
 
+        private static SolidColorBrush brushBlue1 = new SolidColorBrush(Colors.DeepSkyBlue);
+        private static SolidColorBrush brushBlue2 = new SolidColorBrush(Colors.DodgerBlue);
+
+        public Connection conn { get; private set; }
         public KLC.LiveConnectSession session;
         public bool socketActive { get; private set; }
         private string agentID;
@@ -23,15 +27,7 @@ namespace KLC_Finch
         private OnConnect directAction;
         private RC directToMode;
         private bool dashLoaded;
-
-        /*
-        RemoteControl moduleRemoteControl;
-        Dashboard moduleDashboard;
-        CommandTerminal moduleCommand;
-        CommandPowershell modulePowershell;
-        FileExplorer moduleFileExplorer;
-        RegistryEditor moduleRegistry;
-        */
+        private uint connectionAttempt;
 
         public WindowAlternative() {
             InitializeComponent();
@@ -48,7 +44,7 @@ namespace KLC_Finch
         {
             InitializeComponent();
 
-            if (App.winCharm != null || agentID == null || shortToken == null)
+            if (/*App.winCharm != null ||*/ agentID == null || shortToken == null)
                 return;
             //App.winStandalone = this;
 
@@ -57,6 +53,7 @@ namespace KLC_Finch
             this.directAction = directAction;
             this.directToMode = directToMode;
             socketActive = true;
+            connectionAttempt = 0;
 
             //--
 
@@ -91,8 +88,8 @@ namespace KLC_Finch
             }
 
             //WindowCharm.HasConnected callback = (directToRC ? new WindowCharm.HasConnected(ConnectDirect) : new WindowCharm.HasConnected(ConnectNotDirect));
-            WindowCharm.StatusCallback callback = new WindowCharm.StatusCallback(StatusUpdate);
-            Connection conn = ConnectionManager.AddReal(agentID, shortToken, callback, this);
+            StatusCallback callback = new StatusCallback(StatusUpdate);
+            conn = ConnectionManager.AddReal(agentID, shortToken, callback, this);
             session = conn.LCSession;
             if (session.Eirc == null)
             {
@@ -105,6 +102,7 @@ namespace KLC_Finch
             WindowUtilities.ActivateWindow(this);
         }
 
+        /*
         /// <summary>
         /// Charm
         /// </summary>
@@ -128,6 +126,7 @@ namespace KLC_Finch
 
             WindowUtilities.ActivateWindow(this);
         }
+        */
 
         public void Disconnect(string sessionGuid, int reason) {
             if (session.RandSessionGuid != sessionGuid || !socketActive)
@@ -159,29 +158,36 @@ namespace KLC_Finch
             */
         }
 
-        public delegate void StatusCallback(int status);
-        private SolidColorBrush brushBlue1 = new SolidColorBrush(Colors.DeepSkyBlue);
-        private SolidColorBrush brushBlue2 = new SolidColorBrush(Colors.MidnightBlue);
-        public void StatusUpdate(int status)
+        public delegate void StatusCallback(EPStatus status);
+        public void StatusUpdate(EPStatus status)
         {
-            if (status == 1 && directAction != OnConnect.NoAction)
+            if (status == EPStatus.Connected && directAction != OnConnect.NoAction)
                 session.ModuleRemoteControl = new RemoteControl(session, directToMode);
 
             Application.Current.Dispatcher.Invoke((Action)delegate
             {
                 switch (status)
                 {
-                    case 0:
-                        if(directAction != OnConnect.NoAction)
-                            txtStatus.Text = "Attempting to connect and open Remote Control...";
+                    case EPStatus.AttemptingToConnect:
+                    case EPStatus.PeerOffline:
+                    case EPStatus.PeerToPeerFailure:
+                        connectionAttempt++;
+                        if (directAction != OnConnect.NoAction)
+                            txtStatus.Text = "Attempt " + connectionAttempt + " to connect and open Remote Control... ";
                         else
-                            txtStatus.Text = "Attempting to connect...";
+                            txtStatus.Text = "Attempt " + connectionAttempt + " to connect...";
 
-                        borderStatus.Background = (borderStatus.Background == brushBlue1 ? brushBlue2 : brushBlue1);
-                        borderStatus.Background = new SolidColorBrush(Colors.DeepSkyBlue);
+                        if (connectionAttempt % 2 == 0)
+                            borderStatus.Background = brushBlue1;
+                        else
+                            borderStatus.Background = brushBlue2;
                         borderStatus.Visibility = Visibility.Visible;
+
+                        if (connectionAttempt > 99)
+                            session.Close();
+
                         break;
-                    case 1:
+                    case EPStatus.Connected:
                         txtStatus.Text = "Connected";
                         borderStatus.Background = new SolidColorBrush(Colors.Green);
                         borderStatus.Visibility = Visibility.Collapsed;
@@ -192,23 +198,30 @@ namespace KLC_Finch
                             this.Visibility = Visibility.Collapsed;
                         break;
 
-                    case 2:
+                    case EPStatus.UnavailableWsA:
                         txtStatus.Text = "Endpoint Unavailable (Web Socket A)";
                         borderStatus.Background = new SolidColorBrush(Colors.DarkOrange);
                         borderStatus.Visibility = Visibility.Visible;
                         break;
 
-                    case 3:
+                    case EPStatus.DisconnectedWsB:
                         txtStatus.Text = "Endpoint Disconnected (Web Socket B)";
                         borderStatus.Background = new SolidColorBrush(Colors.Maroon);
                         borderStatus.Visibility = Visibility.Visible;
                         break;
 
-                    case 4:
+                    case EPStatus.DisconnectedManual:
                         txtStatus.Text = "Manual Disconnection";
                         borderStatus.Background = new SolidColorBrush(Colors.DimGray);
                         borderStatus.Visibility = Visibility.Visible;
                         break;
+
+                    case EPStatus.AuthFailed:
+                        txtStatus.Text = "Authentication failure or cannot communicate with VSA.";
+                        borderStatus.Background = new SolidColorBrush(Colors.DimGray);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+
                     default:
                         Console.WriteLine("Status unknown: " + status);
                         txtStatus.Text = "Status unknown: " + status;
@@ -218,10 +231,11 @@ namespace KLC_Finch
                 }
             });
 
-            if (status == 1 && directAction != OnConnect.NoAction)
+            if (status == EPStatus.Connected && directAction != OnConnect.NoAction)
                 directAction = OnConnect.NoAction;
         }
 
+        /*
         public delegate void HasConnected();
 
         public void ConnectDirect() {
@@ -238,6 +252,8 @@ namespace KLC_Finch
                 ConnectUpdateUI();
             });
         }
+        */
+
         private void ConnectUpdateUI() {
             if (App.Settings.AltModulesStartAuto) {
                 for (int i = 1; i < tabControl.Items.Count; i++) {
@@ -259,6 +275,7 @@ namespace KLC_Finch
                 tabPowershell.Visibility = Visibility.Collapsed;
                 tabRegistry.Visibility = Visibility.Collapsed;
                 tabEvents.Visibility = Visibility.Collapsed;
+                tabServices.Visibility = Visibility.Collapsed;
             } else {
                 ctrlCommand.btnCommandMacKillKRCH.Visibility = Visibility.Collapsed;
                 ctrlCommand.btnCommandMacReleaseFn.Visibility = Visibility.Collapsed;
@@ -426,6 +443,7 @@ namespace KLC_Finch
                 Owner = this
             };
             winOptions.ShowDialog();
+            ctrlDashboard.UpdateTimer();
         }
 
         private void btnRCLogs_Click(object sender, RoutedEventArgs e)

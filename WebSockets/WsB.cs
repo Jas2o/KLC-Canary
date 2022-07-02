@@ -164,8 +164,10 @@ namespace KLC {
 #endif
 
             if(socket.ConnectionInfo.Path.StartsWith("/control/agent")) {
+#if DEBUG
                 Console.WriteLine("B disconnect (control/agent)");
-                Session.Callback?.Invoke(3);
+#endif
+                Session.Callback?.Invoke(EPStatus.DisconnectedWsB);
                 //ConnectionManager.Disconnect(Session.RandSessionGuid, 1);
             }
             
@@ -191,7 +193,7 @@ namespace KLC {
                 case "/control/agent":
                     ServerBsocketControlAgent = socket;
                     clientPortControlAgent = clientPort;
-                    Session.Callback?.Invoke(1);
+                    Session.Callback?.Invoke(EPStatus.Connected);
                     break;
 
                 case "/app/dashboard":
@@ -356,7 +358,7 @@ namespace KLC {
                 ["p2pConnectionId"] = randSessionGuid,
                 ["data"] = new JObject {
                     ["moduleId"] = module,
-                    ["url"] = "https://KASEYAVSAHOST/api/v1.5/endpoint/download/packages/" + module + "/9.5.0.858/content"
+                    ["url"] = "https://KASEYAVSAHOST/api/v1.5/endpoint/download/packages/" + module + "/9.5.0.1075/content"
                 }
             };
 

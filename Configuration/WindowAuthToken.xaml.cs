@@ -1,5 +1,4 @@
 ﻿using LibKaseya;
-using System.Management;
 using System.Windows;
 
 namespace KLC_Finch
@@ -49,6 +48,7 @@ namespace KLC_Finch
             Clipboard.SetDataObject(txtAuthToken.Password);
         }
 
+        /*
         private void btnAuthGetFromKLC_Click(object sender, RoutedEventArgs e)
         {
             ManagementClass mngmtClass = new ManagementClass("Win32_Process");
@@ -68,6 +68,6 @@ namespace KLC_Finch
                     }
                 }
             }
-        }
+        }*/
     }
 }

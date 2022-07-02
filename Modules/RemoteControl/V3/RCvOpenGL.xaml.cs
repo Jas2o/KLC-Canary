@@ -4,6 +4,7 @@ using NTR;
 using Ookii.Dialogs.Wpf;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -60,6 +61,8 @@ namespace KLC_Finch {
             txtRcNotify.Visibility = Visibility.Collapsed;
 
             MainCamera = new Camera(Vector2.Zero); //for Multi-screen
+            glControl.APIVersion = new Version(3, 2, 0, 0);
+            glControl.Profile = OpenTK.Windowing.Common.ContextProfile.Compatability;
             glControl.Load += glControl_Load;
         }
 
@@ -449,6 +452,7 @@ namespace KLC_Finch {
                 if (screenPointingTo == null)
                     return;
 
+                /*
                 if (screenPointingTo.MouseScale > 1.0)
                 {
                     //Not great, but progress for Macs?
@@ -459,6 +463,7 @@ namespace KLC_Finch {
 
                     point.X += screenPointingTo.screen_x;
                 }
+                */
                 ConnectionManager.Viewer.DebugMouseEvent((int)point.X, (int)point.Y);
 
                 if ((rc.state.UseMultiScreenOverview || rc.state.UseMultiScreenPanZoom) && rc.state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
@@ -499,8 +504,8 @@ namespace KLC_Finch {
                 if (legacyPoint.X > rc.state.legacyVirtualWidth || legacyPoint.Y > rc.state.legacyVirtualHeight)
                     return;
 
-                legacyPoint.X = legacyPoint.X + rc.state.CurrentScreen.rect.X;
-                legacyPoint.Y = legacyPoint.Y + rc.state.CurrentScreen.rect.Y;
+                legacyPoint.X += rc.state.CurrentScreen.rect.X;
+                legacyPoint.Y += rc.state.CurrentScreen.rect.Y;
 
                 ConnectionManager.Viewer.DebugMouseEvent(legacyPoint.X, legacyPoint.Y);
 
@@ -860,7 +865,7 @@ namespace KLC_Finch {
 
                         if (!screen.Texture.Render(shader_program, m_shader_sampler, m_shader_multiplyColor, multiplyColor)) {
                             GL.Disable(EnableCap.Texture2D);
-                            //GL.UseProgram(0);
+                            GL.UseProgram(0);
                             GL.Color3(Color.DimGray);
 
                             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
