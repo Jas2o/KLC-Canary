@@ -103,7 +103,6 @@ namespace KLC_Finch {
                 if (input.ToLower() == "cls")
                     dataPart.Push(Encoding.UTF8.GetBytes("\u001b[2J"));
             }
-            //string json = jAction.ToString();
             serverB.Send(jAction.ToString());
         }
 

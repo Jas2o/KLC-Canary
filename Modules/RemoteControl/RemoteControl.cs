@@ -2,8 +2,10 @@
 using LibKaseya;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using nucs.JsonSettings;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Net;
@@ -16,17 +18,20 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using static LibKaseya.Enums;
 
-namespace KLC_Finch {
+namespace KLC_Finch
+{
 
-    public class RemoteControl : IRemoteControl {
+    public class RemoteControl : IRemoteControl
+    {
         public ControlViewer Viewer;
-        public RC mode { get; private set; }
+        public RC Mode { get; private set; }
         private readonly KLC.LiveConnectSession session;
         private bool captureScreen;
         private int clientB;
 
         //private string activeScreenID;
         private VP8.Decoder decoder;
+        private CancellationTokenSource decoderCT;
 
         //private Vpx.Net.VP8Codec decoder2; //Test
         private ulong lastFrameAckSeq;
@@ -36,61 +41,83 @@ namespace KLC_Finch {
         private string rcSessionId;
         private IWebSocketConnection serverB;
         private System.Timers.Timer timerHeartbeat;
-        private UploadRC fileUpload;
-        private bool IsMac;
 
-        public RemoteControl(KLC.LiveConnectSession session, RC mode) {
+        public Modules.RemoteControl.Transfer.RCFile Files { get; private set; }
+        //private UploadRC fileUpload;
+        //private DownloadRC fileDownload;
+
+        public RemoteControl(KLC.LiveConnectSession session, RC mode)
+        {
             this.session = session;
-            this.mode = mode;
+            this.Mode = mode;
             this.state = new RCstate();
+            IsMac = (session.agent.OSTypeProfile == Agent.OSProfile.Mac);
 
+            decoderCT = new CancellationTokenSource();
             decoder = new VP8.Decoder();
             //decoder2 = new Vpx.Net.VP8Codec(); //Test
+
+            Files = new Modules.RemoteControl.Transfer.RCFile(IsMac);
         }
 
         //public WindowViewerV2 Viewer;
         //public bool UseYUVShader { get; set; }
-        //public DecodeMode DecodeMode { get; set; }
+        public DecodeMode DecodeMode { get; set; }
+        public bool IsMac { get; set; }
         public RCstate state { get; set; }
-        public bool IsPrivate {
+        public bool IsPrivate
+        {
             get
             {
-                return (mode != RC.Shared);
+                return (Mode != RC.Shared);
             }
         }
 
-        public void CaptureNextScreen() {
+        public void CaptureNextScreen()
+        {
             captureScreen = true;
         }
 
-        public void ChangeScreen(string screen_id) {
-            string sendjson = "{\"monitorId\":" + screen_id + "}"; //Intentionally using a string as int/biginteger
-            SendJson(Enums.KaseyaMessageTypes.UpdateMonitorId, sendjson);
+        public void ChangeScreen(string screen_id, int clientH, int clientW)
+        {
+            //{"downscale_limit":4,"monitorId":354484717,"screen_height":636,"screen_width":986}
+            JObject json = new()
+            {
+                ["downscale_limit"] = 1, //Kaseya default is 4
+                ["monitorId"] = int.Parse(screen_id), //Intentionally using a string as int/biginteger
+                ["screen_height"] = clientH,
+                ["screen_width"] = clientW
+            };
+            SendJson(Enums.KaseyaMessageTypes.UpdateMonitorId, json.ToString());
             //activeScreenID = screen_id;
         }
 
-        public void ChangeTSSession(string session_id) {
+        public void ChangeTSSession(string session_id)
+        {
             string sendjson = "{\"sessionId\":" + session_id + "}"; //Intentionally using a string as int/biginteger
             SendJson(Enums.KaseyaMessageTypes.UpdateTerminalSessionId, sendjson);
         }
 
-        public void CloseViewer() {
-            Disconnect(/*rcSessionId*/);
+        public void CloseViewer()
+        {
+            Disconnect(rcSessionId);
         }
 
-        public void Connect() {
+        public void Connect()
+        {
             if (App.winCharm != null)
             {
                 System.Windows.MessageBox.Show("No longer in use for Charm.");
                 return;
             }
 
-            if(App.winStandaloneViewer == null || !App.winStandaloneViewer.IsVisible)
+            if (App.winStandaloneViewer == null || !App.winStandaloneViewer.IsVisible)
             {
                 App.winStandaloneViewer = new WindowViewerV4();
                 App.winStandaloneViewer.Show();
                 ConnectionManager.Viewer = App.winStandaloneViewer.controlViewer;
-            } else
+            }
+            else
                 WindowUtilities.ActivateWindow(App.winStandaloneViewer);
 
             //if (ConnectionManager.Active.LCSession.WebsocketB == null || !ConnectionManager.Active.LCSession.WebsocketB.ControlAgentIsReady())
@@ -107,10 +134,13 @@ namespace KLC_Finch {
                 ViewerWindow = null;
             }
             */
+            /*
+            //This wasn't commented out
             if (Viewer != null)
             {
                 Viewer = null;
             }
+            */
 
             //App.viewer = 
             /*
@@ -120,16 +150,21 @@ namespace KLC_Finch {
             ViewerWindow.Show();
             */
 
-            if (session != null) {
+            /*
+            //This wasn't commented out
+            if (session != null)
+            {
                 rcSessionId = session.WebsocketB.StartModuleRemoteControl(mode);
                 state.SetSessionID(rcSessionId);
             }
 
-            if (rcSessionId != null) {
+            if (rcSessionId != null)
+            {
                 timerHeartbeat = new System.Timers.Timer(1000);
                 timerHeartbeat.Elapsed += SendHeartbeat;
                 timerHeartbeat.Start();
             }
+            */
         }
 
         public void ConnectV1(WindowViewerV4 windowViewerV4)
@@ -137,15 +172,15 @@ namespace KLC_Finch {
             Viewer = windowViewerV4.controlViewer;
             Viewer.rcSwitch = this;
 
-            IsMac = (session.agent.OSTypeProfile == Agent.OSProfile.Mac);
+            //IsMac = (session.agent.OSTypeProfile == Agent.OSProfile.Mac);
             state.Start(Viewer.Settings, session.agent.OSTypeProfile, session.agent.UserLast);
-            state.SetTitle(session.agent.Name, mode);
+            state.SetTitle(session.agent.Name, Mode);
             windowViewerV4.Title = state.BaseTitle;
             windowViewerV4.controlViewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
 
             if (session != null)
             {
-                rcSessionId = session.WebsocketB.StartModuleRemoteControl(mode);
+                rcSessionId = session.WebsocketB.StartModuleRemoteControl(Mode);
                 state.SetSessionID(rcSessionId);
             }
 
@@ -162,15 +197,15 @@ namespace KLC_Finch {
             Viewer = winCharm.controlViewer;
             Viewer.rcSwitch = this;
 
-            IsMac = (session.agent.OSTypeProfile == Agent.OSProfile.Mac);
+            //IsMac = (session.agent.OSTypeProfile == Agent.OSProfile.Mac);
             state.Start(Viewer.Settings, session.agent.OSTypeProfile, session.agent.UserLast);
-            state.SetTitle(session.agent.Name, mode);
+            state.SetTitle(session.agent.Name, Mode);
             winCharm.Title = state.BaseTitle;
             winCharm.controlViewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
 
             if (session != null)
             {
-                rcSessionId = session.WebsocketB.StartModuleRemoteControl(mode);
+                rcSessionId = session.WebsocketB.StartModuleRemoteControl(Mode);
                 state.SetSessionID(rcSessionId);
             }
 
@@ -182,12 +217,15 @@ namespace KLC_Finch {
             }
         }
 
-        public void Disconnect(/*string sessionId*/) {
+        public void Disconnect()
+        {
+            decoderCT.Cancel();
+
             try
             {
                 if (decoder != null)
                 {
-                    lock (decoder)
+                    lock (decoderCT)
                     {
                         decoder.Dispose();
                         decoder = null;
@@ -204,36 +242,71 @@ namespace KLC_Finch {
                 state.connectionStatus = ConnectionStatus.Disconnected;
                 state.socketAlive = false;
             }
-            if (timerHeartbeat != null)
-                timerHeartbeat.Stop();
-            if (serverB != null)
-                serverB.Close();
+
+            timerHeartbeat?.Stop();
+            serverB?.Close();
+
             //if (Viewer != null) Viewer.NotifySocketClosed(sessionId);
         }
+        public void Disconnect(string sessionId)
+        {
+            Disconnect();
+        }
 
-        public unsafe void HandleBytesFromRC(byte[] bytes) {
-            if(Viewer == null)
+        public unsafe void HandleBytesFromRC(byte[] bytes)
+        {
+            if (Viewer == null)
             {
                 return;
             }
 
             byte type = bytes[0];
 
-            if (type == 0x27) {
+            if (type == 0x27) //(byte)Enums.KaseyaMessageTypes.SessionApproved
+            {
                 Viewer.ClearApproval();
-            } else if (type == (byte)Enums.KaseyaMessageTypes.SessionNotSupported) {
+
+                /*
+                //This does not appear to fix the API logs (as opposed to VSA logs) issue
+                RestClient K_Client = new RestClient("https://" + session.agent.VSA);
+                RestRequest request = new RestRequest("api/v1.0/assetmgmt/agent/" + session.agentGuid + "/KLCAuditLogEntry", Method.PUT);
+                request.AddHeader("Authorization", "Bearer " + session.shorttoken);
+                request.AddParameter("Content-Type", "application/json");
+                request.AddJsonBody("{\"UserName\":\"" + session.auth.UserName + "\",\"AgentName\":\"" + session.agent.Name + "\",\"LogMessage\":\"Remote Control Log Notes: \"}");
+                IRestResponse response = K_Client.Execute(request);
+                */
+            }
+            else if (type == (byte)Enums.KaseyaMessageTypes.SessionNotSupported)
+            {
                 App.ShowUnhandledExceptionFromSrc("SessionNotSupported", "Remote Control");
-                Disconnect();
+                Disconnect(rcSessionId);
                 //Viewer.NotifySocketClosed(rcSessionId);
                 //serverB.Close();
                 //Private session failed, this is supposed to prompt the user if they want to use a Shared session
-            } else if (type == (byte)Enums.KaseyaMessageTypes.PrivateSessionDisconnected) {
+            }
+            else if (type == (byte)Enums.KaseyaMessageTypes.PrivateSessionDisconnected)
+            {
                 //Console.WriteLine("PrivateSessionDisconnected");
 
-                Disconnect();
+                Disconnect(rcSessionId);
                 //Viewer.NotifySocketClosed(rcSessionId);
                 //serverB.Close();
-            } else {
+            }
+            else if (type == (byte)Enums.KaseyaMessageTypes.FileCopy)
+            {
+                state.HasFileTransferWaiting = true;
+            }
+            else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferComplete)
+            {
+                Files.FileTransferDownloadComplete();
+                state.HasFileTransferWaiting = false;
+            }
+            else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferUNEXPECTEDComplete)
+            {
+                Debug.WriteLine("Unexpected");
+            }
+            else if (bytes.Length > 1)
+            {
                 int jsonLength = BitConverter.ToInt32(bytes, 1).SwapEndianness();
                 string jsonstr = Encoding.UTF8.GetString(bytes, 5, jsonLength);
                 dynamic json = JsonConvert.DeserializeObject(jsonstr);
@@ -243,14 +316,16 @@ namespace KLC_Finch {
                 byte[] remaining = new byte[remLength];
 
                 //Console.WriteLine(jsonstr);
-                if (remLength > 0) {
+                if (remLength > 0)
+                {
                     Array.Copy(bytes, remStart, remaining, 0, remLength);
                     //string remainingHex = BitConverter.ToString(bytes, remStart, remLength).Replace("-", "");
                     //string remainingstr = Encoding.UTF8.GetString(bytes, 5 + jsonLength, remLength);
                     //Console.WriteLine(remainingHex);
                 }
 
-                if (type == (byte)Enums.KaseyaMessageTypes.HostDesktopConfiguration) {
+                if (type == (byte)Enums.KaseyaMessageTypes.HostDesktopConfiguration)
+                {
                     //Console.WriteLine("HostDesktopConfiguration");
 
                     //Shared Jason
@@ -267,11 +342,18 @@ namespace KLC_Finch {
                     UpdateScreens(jsonstr);
 
                     Viewer.UpdateScreenLayout(jsonstr);
-                    if(mode == RC.Shared)
+                    if (Mode == RC.Shared)
                         Viewer.SetControlEnabled(state, true, true);
                     else
                         Viewer.SetControlEnabled(state, true, false);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.HostTerminalSessionsList) {
+
+                    //--
+
+                    //This is for whatever reason related to drop upload working later.
+                    SendJson(KaseyaMessageTypes.EnableFileTransfer, "{}");
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.HostTerminalSessionsList)
+                {
                     //Console.WriteLine("HostTerminalSessionsList");
                     //{"default_session":4294967294,"sessions":[{"session_id":4294967294,"session_name":"Console JH-TEST-2016\\Hackerman"},{"session_id":1,"session_name":"JH-TEST-2016\\TestUser"}]}
 
@@ -280,11 +362,12 @@ namespace KLC_Finch {
                     state.listTSSession.Clear();
                     state.currentTSSession = null;
 
-                    foreach (dynamic session in json["sessions"]) {
+                    foreach (dynamic session in json["sessions"])
+                    {
                         string session_id = session["session_id"].ToString(); //int or BigInteger
                         string session_name = (string)session["session_name"];
 
-                        TSSession newTSSession = new TSSession(session_id, session_name);
+                        TSSession newTSSession = new(session_id, session_name);
                         state.listTSSession.Add(newTSSession);
                         if (state.currentTSSession == null)
                             state.currentTSSession = newTSSession;
@@ -293,7 +376,9 @@ namespace KLC_Finch {
                     }
 
                     Viewer.RefreshTSSessions();
-                } else if (type == (byte)Enums.KaseyaMessageTypes.CursorImage) {
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.CursorImage)
+                {
                     //Only provided when the cursor image changes, can be from cher end user or remote controller.
                     //{"height":32,"hotspotX":0,"hotspotY":0,"screenPosX":433,"screenPosY":921,"width":32}
 
@@ -312,66 +397,54 @@ namespace KLC_Finch {
                     //Console.WriteLine(jsonstr + " = " + remaining.Length);
                     //Console.WriteLine("Hotspot: " + cursorHotspotX + ", " + cursorHotspotY);
                     state.LoadCursor(cursorX, cursorY, cursorWidth, cursorHeight, cursorHotspotX, cursorHotspotY, remaining);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.Ping) {
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.Ping)
+                {
                     long receivedEpoch = (long)json["timestamp"];
                     state.lastLatency = (DateTimeOffset.Now.ToUnixTimeMilliseconds() - receivedEpoch);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.Video) {
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.Video)
+                {
                     //Just send it anyway, otherwise Kaseya gets sad and stops sending frames
                     //PostFrameAcknowledgementMessage((ulong)json["sequence_number"], (ulong)json["timestamp"]);
                     //Moved to after decode
 
-                    if (App.TexDecodeMode == DecodeMode.BitmapRGB) {
+                    if (App.TexDecodeMode == DecodeMode.BitmapRGB)
+                    {
                         Bitmap b1 = null;
-                        try {
+                        try
+                        {
                             if (decoder == null)
+                            {
                                 decoder = new VP8.Decoder(); //Due to Soft Reconnect
-                            lock (decoder) {
-                                b1 = decoder.Decode(remaining, 0, IsMac);
+                                decoderCT = new CancellationTokenSource();
                             }
-                        } catch (Exception ex) {
+
+                            lock (decoderCT)
+                            {
+                                using (decoderCT.Token.Register(() => decoderCT.Token.ThrowIfCancellationRequested()))
+                                {
+                                    b1 = decoder.Decode(remaining, 0, IsMac);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
                             Console.WriteLine("RC VP8 decode error: " + ex.ToString());
-                        } finally {
-                            if (b1 != null && !state.powerSaving) {
-                                /*
-                                if (state.CurrentScreen.RawWidth != b1.Width)
-                                {
-                                    state.UseMultiScreenFixAvailable = true;
-                                    state.CurrentScreen.RawWidth = b1.Width;
-                                    state.CurrentScreen.RawHeight = b1.Height;
-                                }
-                                state.CurrentScreen.MouseScale = state.CurrentScreen.RawWidth / state.CurrentScreen.rect.Width;
-                                */
+                        }
+                        finally
+                        {
+                            if (b1 != null && !state.powerSaving)
+                            {
+                                state.LoadTexture(b1.Width, b1.Height, b1);
 
-                                if (state.CurrentScreen.Texture != null)
+                                if (captureScreen)
                                 {
-                                    //Rectangle rect = state.CurrentScreen.rectOrg;
-                                    //rect.Width = b1.Width;
-                                    //rect.Height = b1.Height;
-
-                                    if (state.UseMultiScreen)
-                                        state.CurrentScreen.Texture.Load(/*rect,*/ b1);
-                                    else
-                                    {
-                                        //state.legacyVirtualWidth = b1.Width;
-                                        //state.legacyVirtualHeight = b1.Height;
-                                        state.legacyVirtualWidth = state.CurrentScreen.rect.Width;
-                                        state.legacyVirtualHeight = state.CurrentScreen.rect.Height;
-                                        state.textureLegacy.Load(/*rect,*/ b1);
-                                    }
-                                    Viewer.NotifyScreenUpdate();
-                                }
-                                else
-                                {
-                                    //Canvas
-                                    if (ConnectionManager.Active.RC == this)
-                                        Viewer.LoadTexture(b1.Width, b1.Height, b1);
-                                }
-
-                                if (captureScreen) {
                                     captureScreen = false;
 
                                     //This may cause AV to think we're malware
-                                    Thread tc = new Thread(() => {
+                                    Thread tc = new(() =>
+                                    {
                                         System.Windows.Forms.Clipboard.SetImage(b1);
                                     });
                                     tc.SetApartmentState(ApartmentState.STA);
@@ -384,22 +457,33 @@ namespace KLC_Finch {
                                 b1.Dispose();
                             }
                         }
-                    } else {
+                    }
+                    else
+                    {
                         //YUV or Y
 
-                        try {
+                        try
+                        {
                             int rawWidth = 0;
                             int rawHeight = 0;
                             int rawStride = 0;
                             byte[] rawYUV;
                             if (decoder == null)
+                            {
                                 decoder = new VP8.Decoder(); //Due to Soft Reconnect
-                            lock (decoder) {
-                                //This causes GC pressure
-                                if (App.TexDecodeMode == DecodeMode.RawYUV || captureScreen)
-                                    rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride, IsMac);
-                                else
-                                    rawYUV = decoder.DecodeRawBW(remaining, out rawWidth, out rawHeight, out rawStride);
+                                decoderCT = new CancellationTokenSource();
+                            }
+
+                            lock (decoderCT)
+                            {
+                                using (decoderCT.Token.Register(() => decoderCT.Token.ThrowIfCancellationRequested()))
+                                {
+                                    //This causes GC pressure
+                                    if (DecodeMode == DecodeMode.RawYUV || captureScreen)
+                                        rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride, IsMac);
+                                    else
+                                        rawYUV = decoder.DecodeRawBW(remaining, out rawWidth, out rawHeight, out rawStride);
+                                }
                             }
 
                             /*
@@ -411,48 +495,19 @@ namespace KLC_Finch {
                             }
                             */
 
-                            if (rawWidth != 0 && rawHeight != 0 && !state.powerSaving) {
-                                /*
-                                if (state.CurrentScreen.RawWidth != rawWidth)
-                                {
-                                    state.UseMultiScreenFixAvailable = true;
-                                    state.CurrentScreen.RawWidth = rawWidth;
-                                    state.CurrentScreen.RawHeight = rawHeight;
-                                }
-                                state.CurrentScreen.MouseScale = state.CurrentScreen.RawWidth / state.CurrentScreen.rect.Width;
-                                */
+                            if (rawWidth != 0 && rawHeight != 0 && !state.powerSaving)
+                            {
+                                state.LoadTextureRaw(rawYUV, rawWidth, rawHeight, rawStride);
 
-                                if (state.CurrentScreen.Texture != null)
+                                if (captureScreen)
                                 {
-                                    //Rectangle rect = state.CurrentScreen.rectOrg;
-                                    //rect.Width = rawWidth;
-                                    //rect.Height = rawHeight;
-
-                                    if (state.UseMultiScreen)
-                                        state.CurrentScreen.Texture.LoadRaw(/*state.CurrentScreen.rect,*/ rawWidth, rawHeight, rawStride, rawYUV);
-                                    else
-                                    {
-                                        state.legacyVirtualWidth = state.CurrentScreen.rect.Width;
-                                        state.legacyVirtualHeight = state.CurrentScreen.rect.Height;
-                                        //state.legacyVirtualWidth = rawWidth;
-                                        //state.legacyVirtualHeight = rawHeight;
-                                        state.textureLegacy.LoadRaw(/*state.CurrentScreen.rect,*/ rawWidth, rawHeight, rawStride, rawYUV);
-                                    }
-                                    Viewer.NotifyScreenUpdate();
-                                } else
-                                {
-                                    //Canvas
-                                    if (ConnectionManager.Active != null && ConnectionManager.Active.RC == this)
-                                        Viewer.LoadTextureRaw(rawYUV, rawWidth, rawHeight, rawStride);
-                                }
-
-                                if (captureScreen) {
                                     captureScreen = false;
 
                                     Bitmap b1 = decoder.RawToBitmap(rawYUV, rawWidth, rawHeight, rawStride);
 
                                     //This may cause AV to think we're malware
-                                    Thread tc = new Thread(() => {
+                                    Thread tc = new(() =>
+                                    {
                                         System.Windows.Forms.Clipboard.SetImage(b1);
                                     });
                                     tc.SetApartmentState(ApartmentState.STA);
@@ -462,74 +517,151 @@ namespace KLC_Finch {
                                     Thread.Sleep(1);
                                 }
                             }
-                        } catch (Exception ex) {
+                        }
+                        catch (Exception ex)
+                        {
                             Console.WriteLine("RC VP8 decode error: " + ex.ToString());
                         }
                     }
 
+                    Viewer.NotifyScreenUpdate();
                     PostFrameAcknowledgementMessage((ulong)json["sequence_number"], (ulong)json["timestamp"]);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.Clipboard) {
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.Clipboard)
+                {
                     //string remainingHex = BitConverter.ToString(bytes, remStart, remLength).Replace("-", "");
                     string remainingstr = Encoding.UTF8.GetString(remaining); // bytes, 5 + jsonLength, remLength);
                     Viewer.ReceiveClipboard(remainingstr);
                     //Console.WriteLine("Clipboard: " + jsonstr + " // " + remainingstr);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.DropUploadLastChunk) {
-                    //string remainingstr = Encoding.UTF8.GetString(remaining);
-                    string chunkStr = (string)json["chunk"];
-                    int chunk = 0;
-                    if (chunkStr.Length > 0) {
-                        chunk = int.Parse(chunkStr);
-
-                        if (fileUpload.Chunk == chunk)
-                            fileUpload.Chunk++;
-                    }
-
-                    JObject jInfo = new JObject {
-                        ["chunk"] = fileUpload.Chunk.ToString(),
-                        ["mime_type"] = "application/octet-stream",
-                        ["name"] = fileUpload.fileName
-                    };
-                    string sendjson = jInfo.ToString();
-                    if (chunkStr.Length == 0) {
-                        //fileUpload.Open();
-                        SendJson(Enums.KaseyaMessageTypes.DropUploadFileInfo, sendjson);
-                    }
-
-                    //--
-
-                    byte[] contentBuffer = fileUpload.ReadBlock();
-                    if (contentBuffer.Length == 0) {
-                        SendJson(Enums.KaseyaMessageTypes.DropUploadFileComplete, sendjson);
-                        if (fileUpload.showExplorer) {
-                            //This appears to be optional if you want the file explorer to open, which will happen inside RDP.
-                            SendJson(Enums.KaseyaMessageTypes.DropUploadComplete, "{}");
-                        }
-                        fileUpload.Close();
-                        fileUpload = null;
-                    } else {
-                        byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
-                        int jsonLen = jsonBuffer.Length;
-                        int totalLen = jsonLen + contentBuffer.Length;
-
-                        byte[] tosend = new byte[totalLen + 5];
-                        tosend[0] = (byte)Enums.KaseyaMessageTypes.DropUploadFileChunk;
-                        byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
-                        Array.Copy(tosendPrefix, 0, tosend, 1, tosendPrefix.Length);
-                        Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
-                        Array.Copy(contentBuffer, 0, tosend, 5 + jsonLen, contentBuffer.Length);
-
-                        if (serverB != null && serverB.IsAvailable) {
-                            serverB.Send(tosend);
-                            //Console.WriteLine("UploadLastChunk: " + jsonstr);
-                        }
-                    }
-                } else {
-                    Console.WriteLine("Unhandled message type: " + type);
                 }
+                else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferLastChunk)
+                {
+                    //Upload
+                    //string remainingstr = Encoding.UTF8.GetString(remaining);
+                    int chunk = json["chunk"];
+                    string name = json["name"];
+                    //--
+                    try {
+                        byte[] contentBuffer = Files.activeUpload.ReadBlock();
+                        if (contentBuffer.Length == 0)
+                        {
+                            Files.activeUpload.Status = "Uploaded";
+                            Files.activeUpload.Close();
+
+                            bool couldDequeue = Files.queueUpload.TryDequeue(out Files.activeUpload);
+                            if (couldDequeue)
+                            {
+                                Files.activeUpload.Open();
+                                Files.StartUploadUI();
+                            }
+                            else
+                                Files.activeUpload = null; //Probably already null
+                        }
+
+                        if (Files.activeUpload == null)
+                        {
+                            SendJson(Enums.KaseyaMessageTypes.FileTransferComplete, "{}");
+                            Files.FileTransferUploadComplete();
+                        }
+                        else
+                        {
+                            Files.UploadChunkUI();
+
+                            if (name == Files.activeUpload.fileName)
+                            {
+                                Files.activeUpload.Chunk++;
+                            }
+
+                            if (Files.activeUpload.Chunk == 0)
+                            {
+                                JObject jInfo = new()
+                                {
+                                    ["name"] = Files.activeUpload.fileName,
+                                    ["size"] = Files.activeUpload.bytesExpected
+                                };
+                                SendJson(Enums.KaseyaMessageTypes.FileTransferInfo, jInfo.ToString(Formatting.None));
+                            }
+
+                            //--
+
+                            JObject jChunk = new()
+                            {
+                                ["chunk"] = Files.activeUpload.Chunk,
+                                ["name"] = Files.activeUpload.fileName,
+                                ["size"] = Files.activeUpload.bytesExpected
+                            };
+                            //Will also have the chunk after the header
+                            string sendjson = jChunk.ToString(Formatting.None);
+
+                            //--
+
+                            byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
+                            int jsonLen = jsonBuffer.Length;
+                            int totalLen = jsonLen + contentBuffer.Length;
+
+                            byte[] tosend = new byte[totalLen + 5];
+                            tosend[0] = (byte)Enums.KaseyaMessageTypes.FileTransferChunk;
+                            byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
+                            Array.Copy(tosendPrefix, 0, tosend, 1, tosendPrefix.Length);
+                            Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
+                            Array.Copy(contentBuffer, 0, tosend, 5 + jsonLen, contentBuffer.Length);
+
+                            if (serverB != null && serverB.IsAvailable)
+                            {
+                                serverB.Send(tosend);
+                                //Console.WriteLine("UploadLastChunk: " + jsonstr);
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        //Probably means the upload was cancelled
+                    }
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferStart)
+                {
+                    //Download
+                    //{"total_size":18884}
+                    //This number can be bigger than in FileTransferInfo if there is multiple files.
+
+                    Files.DownloadTotalSize = json["total_size"];
+                    SendJson(KaseyaMessageTypes.FileTransferLastChunk, "{}");
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferInfo)
+                {
+                    //Download
+                    //{"name":"Test Export.csv","size":18884}
+                    string dName = json["name"];
+                    long dSize = json["size"];
+
+                    Files.StartDownload(dName, dSize);
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferChunk)
+                {
+                    //Download
+                    try
+                    {
+                        Files.DownloadChunk(remaining);
+                        SendJson(KaseyaMessageTypes.FileTransferLastChunk, jsonstr);
+                    }
+                    catch (Exception)
+                    {
+                        //Probably means the download was cancelled
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("Unhandled message type: " + type + " len " + jsonLength);
+                }
+            }
+            else
+            {
+                Debug.WriteLine("Unhandled message type: " + type);
             }
         }
 
-        public void Reconnect() {
+        public void Reconnect()
+        {
             if (App.winStandaloneViewer != null)
             {
                 //Visibility visBefore = App.winStandalone.Visibility;
@@ -542,7 +674,7 @@ namespace KLC_Finch {
                 int tempWidth = (int)App.winStandaloneViewer.Width;
                 int tempHeight = (int)App.winStandaloneViewer.Height;
 
-                Disconnect();
+                //Disconnect();
                 Connect();
 
                 App.winStandaloneViewer.Left = tempLeft;
@@ -552,43 +684,52 @@ namespace KLC_Finch {
                 App.winStandaloneViewer.WindowState = tempState;
 
                 //App.winStandalone.Visibility = visBefore;
-            } else if(App.winCharm != null)
+            }
+            else if (App.winCharm != null)
             {
                 if (ConnectionManager.Active.LCSession.WebsocketB == null || !ConnectionManager.Active.LCSession.WebsocketB.ControlAgentIsReady())
                     return;
-                ConnectionManager.Active.LCSession.ModuleRemoteControl.Disconnect();
+                ConnectionManager.Active.LCSession.ModuleRemoteControl.Disconnect(rcSessionId);
                 ConnectionManager.Active.LCSession.ModuleRemoteControl = new RemoteControl(ConnectionManager.Active.LCSession, RC.Shared);
                 ConnectionManager.Active.LCSession.ModuleRemoteControl.ConnectV2(App.winCharm);
             }
         }
 
-        public void SendAutotype(string text) {
+        public void SendAutotype(string text)
+        {
             SendAutotype(text, 0);
         }
 
-        public void SendAutotype(string text, int speedPreset) {
+        public void SendAutotype(string text, int speedPreset)
+        {
             //Finch/Hawk method
-            if (session.agent.OSTypeProfile == Agent.OSProfile.Mac) {
+            if (session.agent.OSTypeProfile == Agent.OSProfile.Mac)
+            {
                 speedPreset = 2;
                 MITM.SendText(serverB, text, speedPreset);
                 //SendPasteClipboard(text);
-            } else {
+            }
+            else
+            {
                 MITM.SendText(serverB, text, speedPreset);
             }
         }
 
-        public void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB) {
+        public void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB)
+        {
             //Kaseya method, 9.5.7817.8820
             //{"black_out_screen":0,"block_mouse_keyboard":1}
 
-            JObject json = new JObject {
-                ["black_out_screen"] = (blackOutScreen ? 1 : 2), //This doesn't seem to work yet
+            JObject json = new()
+            {
+                ["black_out_screen"] = (blackOutScreen ? 1 : 2),
                 ["block_mouse_keyboard"] = (blockMouseKB ? 1 : 2)
             };
             SendJson(Enums.KaseyaMessageTypes.BlackScreenBlockInput, json.ToString());
         }
 
-        public void SendClipboard(string content) {
+        public void SendClipboard(string content)
+        {
             string sendjson = "{\"mime_type\":\"UTF-8\"}";
             byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
             byte[] contentBuffer = System.Text.Encoding.UTF8.GetBytes(content);
@@ -607,7 +748,8 @@ namespace KLC_Finch {
                 serverB.Send(tosend);
         }
 
-        public void SendKeyDown(int KaseyaKeycode, int USBKeycode) {
+        public void SendKeyDown(int KaseyaKeycode, int USBKeycode)
+        {
             //8220020000001b
             //0300000081
             //E²}Â@,7 ÐyJ¾ P'Fu	~{"keyboard_layout_handle":"0","keyboard_layout_local":false,"lock_states":2,"pressed":true,"usb_keycode":458775,"virtual_key":84}
@@ -619,7 +761,8 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.Keyboard, sendjson);
         }
 
-        public void SendKeyUp(int KaseyaKeycode, int USBKeycode) {
+        public void SendKeyUp(int KaseyaKeycode, int USBKeycode)
+        {
             //8220020000001b
             //0300000081
             //E²}Â@,7 ÐyJ¾ P'Fu	~{"keyboard_layout_handle":"0","keyboard_layout_local":false,"lock_states":2,"pressed":true,"usb_keycode":458775,"virtual_key":84}
@@ -631,7 +774,8 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.Keyboard, sendjson);
         }
 
-        public void SendMouseDown(MouseButtons button) {
+        public void SendMouseDown(MouseButtons button)
+        {
             //WinForms
             if (mouseDown)
                 return;
@@ -646,7 +790,8 @@ namespace KLC_Finch {
             mouseDown = true;
         }
 
-        public void SendMouseDown(MouseButton button) {
+        public void SendMouseDown(MouseButton button)
+        {
             //WPF
             if (mouseDown)
                 return;
@@ -658,7 +803,8 @@ namespace KLC_Finch {
             mouseDown = true;
         }
 
-        public void SendMousePosition(int x, int y) {
+        public void SendMousePosition(int x, int y)
+        {
             //8220020000001b
             //EJm@T¤T¯Ê(ªÌ/QP'ia {"type":1,"x":1799,"y":657}
 
@@ -666,7 +812,8 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.Mouse, sendjson);
         }
 
-        public void SendMouseUp(MouseButtons button) {
+        public void SendMouseUp(MouseButtons button)
+        {
             //WinForms
             if (!mouseDown)
                 return;
@@ -681,7 +828,8 @@ namespace KLC_Finch {
             mouseDown = false;
         }
 
-        public void SendMouseUp(MouseButton button) {
+        public void SendMouseUp(MouseButton button)
+        {
             //WPF
             if (!mouseDown)
                 return;
@@ -696,7 +844,8 @@ namespace KLC_Finch {
             mouseDown = false;
         }
 
-        public void SendMouseWheel(int delta) {
+        public void SendMouseWheel(int delta)
+        {
             //8220020000001b
             //EJm@T¤T¯Ê(ªÌ/QP'ia {"type":1,"x":1799,"y":657}
 
@@ -714,11 +863,13 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.Mouse, sendjson);
         }
 
-        public void SendPanicKeyRelease() {
+        public void SendPanicKeyRelease()
+        {
             if (serverB == null || !serverB.IsAvailable)
                 return;
 
-            foreach (int jskey in KeycodeV2.ModifiersJS) {
+            foreach (int jskey in KeycodeV2.ModifiersJS)
+            {
                 KeycodeV2 key = KeycodeV2.List.Find(x => x.JavascriptKeyCode == jskey);
                 serverB.Send(MITM.GetSendKey(key, false));
             }
@@ -726,54 +877,100 @@ namespace KLC_Finch {
             //Needs to be updated to include Fn for Mac.
         }
 
-        public void SendPasteClipboard(string text) {
+        public void SendPasteClipboard(string text)
+        {
             //Kaseya method, 9.5.7765.16499
             //Has a limit of 255 characters, apparently.
-            JObject json = new JObject {
+            JObject json = new()
+            {
                 ["content_to_paste"] = text
             };
             SendJson(Enums.KaseyaMessageTypes.PasteClipboard, json.ToString());
         }
 
-        public void SendSecureAttentionSequence() {
+        public void SendSecureAttentionSequence()
+        {
             //Control+Alt+Delete
             //This doesn't seem to work in private sessions
+
             SendJson(Enums.KaseyaMessageTypes.SecureAttentionSequence, "{}");
         }
 
-        public void SetSocket(IWebSocketConnection ServerBsocket, int ipPort) {
+        public void SetSocket(IWebSocketConnection ServerBsocket, int ipPort)
+        {
             this.serverB = ServerBsocket;
             this.clientB = ipPort;
         }
 
-        public void ShowCursor(bool enabled) {
+        public void ShowCursor(bool enabled)
+        {
             //Kaseya method, 9.5.7765.16499
-            JObject json = new JObject {
+            JObject json = new()
+            {
                 ["enabled"] = enabled
             };
             SendJson(Enums.KaseyaMessageTypes.ShowCursor, json.ToString());
         }
 
-        public void UpdateScreens(string jsonstr) {
+        public void UpdateScreens(string jsonstr)
+        {
             //Do nothing
         }
 
-        public void UploadDrop(string file, Progress<int> progress, bool showExplorer) {
-            if (fileUpload == null) {
-                fileUpload = new UploadRC(file, showExplorer, progress);
-                bool ableToOpen = fileUpload.Open();
+        public void FileTransferUpload(string[] files)
+        {
+            if (Files.activeUpload == null)
+            {
+                Files.UploadQueueSize = 0;
+                foreach (string file in files)
+                {
+                    UploadRC urc = new UploadRC(file);
+                    Files.queueUpload.Enqueue(urc);
+                    Files.HistoryAddUpload(urc);
+                    Files.UploadQueueSize += urc.bytesExpected;
+                }
+
+                Files.activeUpload = Files.queueUpload.Dequeue();
+                bool ableToOpen = Files.activeUpload.Open();
+                Files.StartUploadUI();
                 if (ableToOpen)
-                    SendJson(Enums.KaseyaMessageTypes.DropUploadStart, "{}");
-                else {
-                    if (progress != null)
-                        ((IProgress<int>)progress).Report(100);
-                    fileUpload = null;
+                {
+                    JObject json = new()
+                    {
+                        ["total_size"] = Files.UploadQueueSize
+                    };
+                    SendJson(Enums.KaseyaMessageTypes.FileTransferStart, json.ToString(Formatting.None));
+                }
+                else
+                {
+                    Files.activeUpload.Status = "Upload aborted";
+                    Files.activeUpload = null;
+                    Files.queueUpload.Clear();
+                    //Files.HistoryClearUpload();
+                    Files.UploadQueueSize = 0;
+                    //FileTransferDownloadCancel();
                 }
             }
         }
 
-        private static int GetNewPort() {
-            TcpListener tcpListener = new TcpListener(IPAddress.Parse("127.0.0.1"), 0);
+        public void FileTransferDownload()
+        {
+            SendJson(KaseyaMessageTypes.ReceiveFile, "{}");
+        }
+
+        public void FileTransferUploadCancel()
+        {
+            SendJson(KaseyaMessageTypes.FileTransferAEPError, "{\"error_msg\":\"Admin canceled file sending\"}");
+        }
+
+        public void FileTransferDownloadCancel()
+        {
+            SendJson(KaseyaMessageTypes.FileTransferDownloadCancel, "{\"error_msg\":\"Admin canceled file receiving\"}");
+        }
+
+        private static int GetNewPort()
+        {
+            TcpListener tcpListener = new(IPAddress.Parse("127.0.0.1"), 0);
             tcpListener.Start();
             int port = ((IPEndPoint)tcpListener.LocalEndpoint).Port;
             tcpListener.Stop();
@@ -781,7 +978,8 @@ namespace KLC_Finch {
             return port;
         }
 
-        private static int SwapEndianness(int value) {
+        private static int SwapEndianness(int value)
+        {
             var b1 = (value >> 0) & 0xff;
             var b2 = (value >> 8) & 0xff;
             var b3 = (value >> 16) & 0xff;
@@ -790,19 +988,24 @@ namespace KLC_Finch {
             return b1 << 24 | b2 << 16 | b3 << 8 | b4 << 0;
         }
 
-        private void PostFrameAcknowledgementMessage(ulong sequence_number, ulong timestamp) {
-            if (timestamp > lastFrameAckTimestamp) {
+        private void PostFrameAcknowledgementMessage(ulong sequence_number, ulong timestamp)
+        {
+            if (timestamp > lastFrameAckTimestamp)
+            {
                 lastFrameAckSeq = sequence_number;
                 lastFrameAckTimestamp = timestamp;
 
                 string sendjson = "{\"last_processed_sequence_number\":" + lastFrameAckSeq + ",\"most_recent_timestamp\":" + lastFrameAckTimestamp + "}";
                 SendJson(Enums.KaseyaMessageTypes.FrameAcknowledgement, sendjson);
-            } else {
+            }
+            else
+            {
                 //Console.WriteLine("Frame Ack out of order");
             }
         }
 
-        private void SendHeartbeat(object sender, ElapsedEventArgs e) {
+        private void SendHeartbeat(object sender, ElapsedEventArgs e)
+        {
             if (serverB == null || !serverB.IsAvailable)
                 return;
 
@@ -810,7 +1013,8 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.Ping, sendjson);
         }
 
-        private void SendJson(Enums.KaseyaMessageTypes messageType, string sendjson) {
+        private void SendJson(Enums.KaseyaMessageTypes messageType, string sendjson)
+        {
             byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
             int jsonLen = jsonBuffer.Length;
 
@@ -823,7 +1027,7 @@ namespace KLC_Finch {
             if (serverB != null && serverB.IsAvailable)
                 serverB.Send(tosend);
             else
-                Disconnect();
+                Disconnect(rcSessionId);
         }
 
         /*
@@ -849,10 +1053,7 @@ namespace KLC_Finch {
 
         public void UpdateScreensHack()
         {
-            if (session.ModuleStaticImage == null)
-            {
-                session.ModuleStaticImage = new StaticImage(session, null);
-            }
+            session.ModuleStaticImage ??= new StaticImage(session, null);
             session.ModuleStaticImage.ReconnectHack();
         }
     }

@@ -15,6 +15,8 @@ namespace KLC_Finch {
         public bool AltModulesStartAuto { get; set; } = true;
         public bool AltModulesStartAutoMacStaticImage { get; set; } = true;
         public bool AltModulesDashboardRefresh { get; set; } = true;
+        public bool AltShowWarnings { get; set; } = false;
+        public bool AltShowAlphaTab { get; set; } = false;
 
         //RC: Debug Text
         public bool DisplayOverlayMouse { get; set; } = false;

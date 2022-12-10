@@ -1,5 +1,6 @@
 ﻿using Fleck;
 using KLC_Finch;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,10 +11,12 @@ using System.Threading.Tasks;
 using System.Windows.Threading;
 using static LibKaseya.Enums;
 
-namespace KLC {
+namespace KLC
+{
 
-    public class WsA {
-        
+    public class WsA
+    {
+
         private readonly LiveConnectSession Session;
 
         private readonly WebSocketServer ServerA;
@@ -27,7 +30,8 @@ namespace KLC {
         public static bool useInternalMITM = false; //Hawk
         private readonly bool useExternalMITM = false; //Port M
 
-        public WsA(LiveConnectSession session, int portA, int portB) {
+        public WsA(LiveConnectSession session, int portA, int portB)
+        {
             Session = session;
             //Module = "A";
 
@@ -55,12 +59,14 @@ namespace KLC {
                     Session.Callback?.Invoke(EPStatus.UnavailableWsA);
                     ConnectionManager.Disconnect(Session.RandSessionGuid, 0);
 
-                    if (Session.ModuleRemoteControl != null) {
+                    if (Session.ModuleRemoteControl != null)
+                    {
                         Session.ModuleRemoteControl.Disconnect();
                     }
                 };
                 socket.OnMessage = message => {
-                    if (message.Contains("PeerOffline")) {
+                    if (message.Contains("PeerOffline"))
+                    {
                         //{"agentId":"429424626294329","type":"UserInterfaceStatus","data":{"relayError":"PeerOffline","sessionId":"y1d+uY2pEsC5dmpm43UjGg==","status":"ConnectedWithError"}}
 #if DEBUG
                         //Console.WriteLine("Closing A because the agent is offline.");
@@ -71,7 +77,9 @@ namespace KLC {
                         ServerOnOpen(socket);
                         //HasCompleted = true;
                         //Close();
-                    } else {
+                    }
+                    else
+                    {
                         if (message.Contains("PeerToPeerFailure"))
                         {
 #if DEBUG
@@ -123,7 +131,8 @@ namespace KLC {
                     Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.exe")
                 };
             }
-            else {
+            else
+            {
                 files = new string[] {
                     @"C:\Program Files\Kaseya Live Connect\Kaseya.AdminEndpoint.exe",
                     Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect\Kaseya.AdminEndpoint.exe")
@@ -156,41 +165,69 @@ namespace KLC {
             //Tell AdminEndPoint
         }
 
-        public void Close() {
+        public void Close()
+        {
             if (ServerAsocket != null)
                 ServerAsocket.Close();
-            if(ServerA.ListenerSocket.Connected)
+            if (ServerA.ListenerSocket.Connected)
                 ServerA.ListenerSocket.Close();
         }
 
-        public void Send(string message) {
-            try {
+        public void Send(string message)
+        {
+            try
+            {
                 ServerAsocket.Send(message).Wait();
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
 #if DEBUG
                 Console.WriteLine("[WsA:Send] " + ex.ToString());
 #endif
             }
         }
 
-        private void ServerOnOpen(IWebSocketConnection socket) {
-            if (useExternalMITM) {
+        private void ServerOnOpen(IWebSocketConnection socket)
+        {
+            JObject json1 = new JObject
+            {
+                ["data"] = new JObject
+                {
+                    ["adminId"] = Session.Auth.AdminId,
+                    ["adminName"] = Session.Auth.UserName,
+                    ["jsonWebToken"] = Session.Eal.auth_jwt,
+                    ["server"] = Session.agent.VSA,
+                    ["serverPort"] = 443,
+                    ["tenantId"] = "1"
+                },
+                ["type"] = "AdminIdentity"
+            };
+
+            JObject json2 = new JObject
+            {
+                ["data"] = new JObject
+                {
+                    ["agentId"] = Session.agentGuid,
+                    ["connectPort"] = PortB,
+                    ["endpointId"] = Session.Eirc.endpoint_id,
+                    ["jsonWebToken"] = Session.Eirc.session_jwt,
+                    ["policy"] = 0,
+                    ["tenantId"] = Session.Auth.TenantId
+                },
+                ["p2pConnectionId"] = Session.RandSessionGuid,
+                ["type"] = "AgentIdentity"
+            };
+
+            if (useExternalMITM)
+            {
                 int newPort = Session.WebsocketM.PortM;
 
-                string jsonM1 = "{\"data\":{\"adminId\":\"" + Session.Auth.AdminId + "\",\"adminName\":\"" + Session.Auth.UserName + "\",\"jsonWebToken\":\"" + Session.Eal.auth_jwt + "\",\"server\":\"lms-jason.example\",\"serverPort\":" + newPort + ",\"tenantId\":\"1\"},\"type\":\"AdminIdentity\"}";
-                string jsonM2 = "{\"data\":{\"agentId\":\"" + Session.agentGuid + "\",\"connectPort\":" + PortB + ",\"endpointId\":\"" + Session.Eirc.endpoint_id + "\",\"jsonWebToken\":\"" + Session.Eirc.session_jwt + "\",\"policy\":0,\"tenantId\":\"" + Session.Auth.TenantId + "\"},\"p2pConnectionId\":\"" + Session.RandSessionGuid + "\",\"type\":\"AgentIdentity\"}";
-                socket.Send(jsonM1);
-                socket.Send(jsonM2);
-
-                //--
-                return;
+                json1["data"]["server"] = "vsa-mitm.example";
+                json1["data"]["serverPort"] = newPort;
             }
 
-            string json1 = "{\"data\":{\"adminId\":\"" + Session.Auth.AdminId + "\",\"adminName\":\"" + Session.Auth.UserName + "\",\"jsonWebToken\":\"" + Session.Eal.auth_jwt + "\",\"server\":\"vsa-web.company.com.au\",\"serverPort\":443,\"tenantId\":\"1\"},\"type\":\"AdminIdentity\"}";
-            string json2 = "{\"data\":{\"agentId\":\"" + Session.agentGuid + "\",\"connectPort\":" + PortB + ",\"endpointId\":\"" + Session.Eirc.endpoint_id + "\",\"jsonWebToken\":\"" + Session.Eirc.session_jwt + "\",\"policy\":0,\"tenantId\":\"" + Session.Auth.TenantId + "\"},\"p2pConnectionId\":\"" + Session.RandSessionGuid + "\",\"type\":\"AgentIdentity\"}";
-
-            socket.Send(json1);
-            socket.Send(json2);
+            socket.Send(json1.ToString());
+            socket.Send(json2.ToString());
 #if DEBUG
             Console.WriteLine("Sent the A payload");
 #endif

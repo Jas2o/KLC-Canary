@@ -97,7 +97,6 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                     <RowDefinition />
                 </Grid.RowDefinitions>
 
@@ -174,14 +173,14 @@
                     </Grid>
                 </StackPanel>
                 <Expander
-                    Grid.Row="2"
+                    Grid.Row="1"
                     Header="Volumes"
                     IsExpanded="True">
                     <StackPanel x:Name="stackDisks">
                         <!--<command:controlDisk/>-->
                     </StackPanel>
                 </Expander>
-                <Expander Grid.Row="3" Header="Misc">
+                <Expander Grid.Row="2" Header="Misc">
                     <TextBox
                         x:Name="txtDashboard"
                         Margin="0"

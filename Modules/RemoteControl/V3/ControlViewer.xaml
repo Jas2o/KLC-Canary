@@ -77,14 +77,6 @@
                 VerticalAlignment="Stretch"
                 Click="ToolScreenMode_Click"
                 Content="{Binding ScreenModeText, Mode=OneWay, FallbackValue='Multi'}" />
-            <!--<Button
-                x:Name="toolScreenFix"
-                VerticalAlignment="Stretch"
-                Background="Gold"
-                Click="ToolScreenFix_Click"
-                Content="Fix"
-                FontWeight="Bold"
-                Visibility="{Binding Path=UseMultiScreenFixAvailable, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />-->
             <Button
                 x:Name="toolScreenOverview"
                 VerticalAlignment="Stretch"
@@ -109,20 +101,6 @@
                         Visibility="{Binding Path=UseMultiScreenPanZoom, Converter={StaticResource BoolToVis}}" />
                 </StackPanel>
             </Button>
-            <!--
-            <Button
-                x:Name="toolZoomIn"
-                Click="ToolZoomIn_Click"
-                ToolTip="Zoom In">
-                <Image Source="/KLC-Canary;component/Resources/magnify-plus-outline.png" StretchDirection="DownOnly" />
-            </Button>
-            <Button
-                x:Name="toolZoomOut"
-                Click="ToolZoomOut_Click"
-                ToolTip="Zoom Out">
-                <Image Source="/KLC-Canary;component/Resources/magnify-minus-outline.png" StretchDirection="DownOnly" />
-            </Button>
-            -->
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button
                 x:Name="toolClipboardSync"
@@ -167,14 +145,30 @@
                     <TextBlock>
                         Send to Client<LineBreak /><LineBreak /><Run Name="toolClipboardSendText" /></TextBlock>
                 </Button.ToolTip>
-                <Image Source="/KLC-Canary;component/Resources/tray-arrow-down.png" StretchDirection="DownOnly" />
+                <Image Source="/KLC-Canary;component/Resources/tray-arrow-down-low.png" StretchDirection="DownOnly" />
             </Button>
             <Button x:Name="toolClipboardGet" Click="ToolClipboardGet_Click">
                 <Button.ToolTip>
                     <TextBlock>
                         Get from Client<LineBreak /><LineBreak /><Run Name="toolClipboardGetText" /></TextBlock>
                 </Button.ToolTip>
-                <Image Source="/KLC-Canary;component/Resources/tray-arrow-up.png" StretchDirection="DownOnly" />
+                <Image Source="/KLC-Canary;component/Resources/tray-arrow-up-low.png" StretchDirection="DownOnly" />
+            </Button>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <Button
+                x:Name="ToolFileTransfer"
+                Click="ToolFileTransfer_Click"
+                ToolTip="File Transfer">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="/KLC-Canary;component/Resources/file-arrow-up-down-outline2.png" StretchDirection="DownOnly" />
+                    <Label
+                        x:Name="ToolFileTransferLabel"
+                        Padding="0"
+                        VerticalAlignment="Center"
+                        Content="!"
+                        IsEnabled="false"
+                        Visibility="{Binding Path=HasFileTransferWaiting, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button

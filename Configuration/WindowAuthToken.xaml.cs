@@ -1,4 +1,6 @@
 ﻿using LibKaseya;
+using System;
+using System.Collections.Generic;
 using System.Windows;
 
 namespace KLC_Finch
@@ -8,39 +10,41 @@ namespace KLC_Finch
     /// </summary>
     public partial class WindowAuthToken : Window
     {
+        public string ReturnAddress;
+        public string ReturnToken;
+
         public WindowAuthToken()
         {
             InitializeComponent();
-        }
 
-        public static string GetInput(string starter, Window owner)
-        {
-            WindowAuthToken form = new WindowAuthToken();
-            form.Owner = owner;
-            form.txtAuthToken.Password = starter;
-
-            bool? result = form.ShowDialog();
-            if (result == true)
+            foreach (KeyValuePair<string, KaseyaVSA> vsa in Kaseya.VSA)
             {
-                string token = form.txtAuthToken.Password.Trim();
-                //Save the token until the computer is logged out
-                Kaseya.LoadToken(token);
-                KaseyaAuth.SetCredentials(token);
-                return token;
+                cmbAddress.Items.Add(vsa.Key);
             }
-            else
-                return starter;
         }
 
-        public string ResponseText
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            get { return txtAuthToken.Password; }
-            set { txtAuthToken.Password = value; }
+            if (cmbAddress.Items.Count > 0)
+            {
+                cmbAddress.SelectedIndex = 0;
+                RefreshToken();
+            }
         }
 
         private void OKButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            DialogResult = true;
+            //if (cmbAddress.SelectedIndex == -1)
+            //return;
+
+            ReturnAddress = cmbAddress.SelectedItem.ToString().Trim();
+            ReturnToken = txtAuthToken.Password.Trim();
+
+            if (ReturnAddress.Length > 0 && ReturnToken.Length > 0)
+            {
+                this.DialogResult = true;
+                this.Close();
+            }
         }
 
         private void btnAuthCopy_Click(object sender, RoutedEventArgs e)
@@ -48,9 +52,9 @@ namespace KLC_Finch
             Clipboard.SetDataObject(txtAuthToken.Password);
         }
 
-        /*
         private void btnAuthGetFromKLC_Click(object sender, RoutedEventArgs e)
         {
+            /* //Not .NET 6 compatible
             ManagementClass mngmtClass = new ManagementClass("Win32_Process");
             foreach (ManagementObject o in mngmtClass.GetInstances())
             {
@@ -61,13 +65,38 @@ namespace KLC_Finch
                     int pos = commandline.IndexOf(find);
                     if (pos > 0)
                     {
-                        string base64 = commandline.Substring(pos + find.Length).Replace("\"", "");
+                        string base64 = commandline.Substring(pos + find.Length);
                         KLCCommand command = KLCCommand.NewFromBase64(base64);
                         txtAuthToken.Password = command.payload.auth.Token;
                         return;
                     }
                 }
             }
-        }*/
+            */
+        }
+
+        private void RefreshToken()
+        {
+            foreach (KeyValuePair<string, KaseyaVSA> vsa in Kaseya.VSA)
+            {
+                if (vsa.Key == cmbAddress.Text)
+                {
+                    txtAuthToken.Password = vsa.Value.Token;
+                    return;
+                }
+            }
+
+            txtAuthToken.Password = "";
+        }
+
+        private void cmbAddress_DropDownClosed(object sender, EventArgs e)
+        {
+            RefreshToken();
+        }
+
+        private void cmbAddress_KeyUp(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            RefreshToken();
+        }
     }
 }

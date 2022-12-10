@@ -1,15 +1,17 @@
 ﻿using KLC_Finch;
 using OpenTK;
-using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 
-namespace NTR {
+namespace NTR
+{
 
-    public class TextureScreen {
+    public class TextureScreen
+    {
         private readonly object _lock = new object();
         public byte[] Data;
         public byte[] DataU, DataV;
@@ -17,11 +19,11 @@ namespace NTR {
         public int ID; //RGB or Y
         public int IDu, IDv;
         private bool IsNew;
-        //private Rectangle rect; //Kinda silly we have this twice
+        private Rectangle rect; //Kinda silly we have this twice
         private int stride;
-        private int VBOScreen, VBOLegacy;
-        //private bool vertBufferNeedUpdate;
-        private Vector2[] vertBufferScreen, vertBufferLegacy;
+        private int VBOScreen;//, VBOLegacy;
+        private bool vertBufferNeedUpdate;
+        private Vector2[] vertBufferScreen;//, vertBufferLegacy;
         private int width, height;
 
         //public bool IsRetina { get; private set; }
@@ -29,68 +31,31 @@ namespace NTR {
         /// <summary>
         /// Only call this from GL Render
         /// </summary>
-        public TextureScreen() { //KLC_Finch.DecodeMode decodeMode
-            //DecodeMode = decodeMode;
-            ID = -1;
-            VBOLegacy = GL.GenBuffer();
+        public TextureScreen()
+        {
+            ID = GL.GenTexture();
+            if (App.TexDecodeMode == DecodeMode.RawYUV)
+            {
+                IDu = GL.GenTexture();
+                IDv = GL.GenTexture();
+            }
         }
 
-        /// <summary>
-        /// Only call this inside OpenGL render
-        /// </summary>
-        /// <param name="rect"></param>
-        public TextureScreen(Rectangle rect) : this() {
-            width = rect.Width;
-            height = rect.Height;
-
-            vertBufferScreen = new Vector2[8] {
-                new Vector2(rect.Left, rect.Bottom), new Vector2(0, 1),
-                new Vector2(rect.Right, rect.Bottom), new Vector2(1, 1),
-                new Vector2(rect.Right, rect.Top), new Vector2(1, 0),
-                new Vector2(rect.Left, rect.Top), new Vector2(0, 0)
-            };
-            VBOScreen = GL.GenBuffer();
-            VBOLegacy = GL.GenBuffer();
-
-            if (App.TexDecodeMode == DecodeMode.BitmapRGB)
+        public void Load(Rectangle rect, Bitmap decomp)
+        {
+            lock (_lock)
             {
-                Bitmap bTest = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-                using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(Color.DimGray); }
-                //Load(rect, bTest);
-                Load(bTest);
-                bTest.Dispose();
-            }
-            else
-            {
-                int sizeY = width * height;
-                int sizeUV = width * height / 4;
-                byte[] yuv = new byte[sizeY + sizeUV + sizeUV];
-                for (int i = 0; i < sizeY; i++)
+                if (this.rect.Width != rect.Width || this.rect.Height != rect.Height || this.rect.X != rect.X || this.rect.Y != rect.Y)
                 {
-                    //DimGray
-                    yuv[i] = 105;
-                    yuv[i + sizeUV] = 128;
-                    yuv[i + sizeUV + sizeUV] = 128;
-                }
-                //LoadRaw(rect, width, height, width, yuv);
-                LoadRaw(width, height, width, yuv);
-            }
-        }
-
-        public void Load(/*Rectangle rect,*/ Bitmap decomp) {
-            lock (_lock) {
-                /*
-                //this causes weird shit.
-                if (this.rect.Width != rect.Width || this.rect.Height != rect.Height || this.rect.X != rect.X || this.rect.Y != rect.Y) {
                     this.rect = rect;
-                    if (width == this.rect.Width * 2) {
+                    if (width == this.rect.Width * 2)
+                    {
                         this.rect.Width = width;
                         this.rect.Height = height;
                     }
 
                     vertBufferNeedUpdate = true;
                 }
-                */
 
                 width = decomp.Width;
                 height = decomp.Height;
@@ -109,26 +74,28 @@ namespace NTR {
             }
         }
 
-        public void LoadRaw(/*Rectangle rect,*/
-                int width, int height, int stride, byte[] buffer) {
-            lock (_lock) {
-                /*
-                //this causes weird shit.
-                if (this.rect.Width != rect.Width || this.rect.Height != rect.Height || this.rect.X != rect.X || this.rect.Y != rect.Y) {
+        public void LoadRaw(Rectangle rect, int width, int height, int stride, byte[] buffer)
+        {
+            lock (_lock)
+            {
+                if (this.rect.Width != rect.Width || this.rect.Height != rect.Height || this.rect.X != rect.X || this.rect.Y != rect.Y)
+                {
                     this.rect = rect;
+                    /*
                     if (width == this.rect.Width * 2) {
                         this.rect.Width = width;
                         this.rect.Height = height;
                     }
+                    */
                     vertBufferNeedUpdate = true;
                 }
-                */
 
                 this.width = width;
                 this.height = height;
                 this.stride = stride;
 
-                if (Data == null || Data.Length != stride * height) {
+                if (Data == null || Data.Length != stride * height)
+                {
                     //virtualRequireViewportUpdate = true;
                     //Console.WriteLine("[LoadTexture:Legacy] Array needs to be resized");
 
@@ -138,9 +105,11 @@ namespace NTR {
                 int pos = 0;
                 System.Buffer.BlockCopy(buffer, pos, Data, 0, Data.Length);
 
-                if (App.TexDecodeMode == DecodeMode.RawYUV) {
+                if (App.TexDecodeMode == DecodeMode.RawYUV)
+                {
                     int len = stride * height / 4;
-                    if (DataU == null || DataU.Length != len) {
+                    if (DataU == null || DataU.Length != len)
+                    {
                         DataU = new byte[len];
                         DataV = new byte[len];
                     }
@@ -155,59 +124,57 @@ namespace NTR {
             }
         }
 
-        public bool Render(int programYUV, int[] m_shader_sampler, int m_shader_multiplyColor = 0, Color? multiplyColor = null, int legacyWidth = 0, int legacyHeight = 0) {
-            if (ID == -1 || /*rect == null ||*/ Data == null)
+        public bool Render(int programYUV, int[] m_shader_sampler, int m_shader_multiplyColor = 0, Color? multiplyColor = null)
+        {
+            if (ID == -1 || Data == null || rect.IsEmpty)
                 return false;
 
-            if (legacyWidth > 0) {
-                //vertBufferNeedUpdate = false;
-
-                vertBufferLegacy = new Vector2[8] {
-                    new Vector2(0, legacyHeight), new Vector2(0, 1),
-                    new Vector2(legacyWidth, legacyHeight), new Vector2(1, 1),
-                    new Vector2(legacyWidth, 0), new Vector2(1, 0),
-                    new Vector2(0, 0), new Vector2(0, 0)
-                };
-
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOLegacy);
-                GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferLegacy.Length), vertBufferLegacy, BufferUsageHint.StaticDraw);
-            } else
+            if (vertBufferNeedUpdate)
             {
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-                GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferScreen.Length), vertBufferScreen, BufferUsageHint.StaticDraw);
+                vertBufferNeedUpdate = false;
+                if (vertBufferScreen == null)
+                    VBOScreen = GL.GenBuffer();
+
+                vertBufferScreen = new Vector2[8] {
+                    new Vector2(rect.Left, rect.Bottom), new Vector2(0, 1),
+                    new Vector2(rect.Right, rect.Bottom), new Vector2(1, 1),
+                    new Vector2(rect.Right, rect.Top), new Vector2(1, 0),
+                    new Vector2(rect.Left, rect.Top), new Vector2(0, 0)
+                };
             }
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferScreen.Length), vertBufferScreen, BufferUsageHint.StaticDraw);
 
             GL.Enable(EnableCap.Texture2D);
 
-            if (App.TexDecodeMode == DecodeMode.BitmapRGB) {
+            if (App.TexDecodeMode == KLC_Finch.DecodeMode.BitmapRGB)
+            {
                 GL.UseProgram(0);
 
                 GL.Color3(multiplyColor ?? Color.White);
 
-                if (legacyWidth > 0)
-                    GL.BindBuffer(BufferTarget.ArrayBuffer, VBOLegacy);
-                else
-                    GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-
+                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
                 GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, ID);
-            } else {
-                if (App.TexDecodeMode == DecodeMode.RawYUV) {
+            }
+            else
+            {
+                if (App.TexDecodeMode == KLC_Finch.DecodeMode.RawYUV)
+                {
                     GL.UseProgram(programYUV);
                 }
 
                 GL.EnableClientState(ArrayCap.VertexArray);
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
 
-                if (legacyWidth > 0)
-                    GL.BindBuffer(BufferTarget.ArrayBuffer, VBOLegacy);
-                else
-                    GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
 
                 GL.ActiveTexture(TextureUnit.Texture1);
                 GL.EnableClientState(ArrayCap.TextureCoordArray);
                 GL.BindTexture(TextureTarget.Texture2D, ID);
-                if (App.TexDecodeMode == DecodeMode.RawYUV) {
+                if (App.TexDecodeMode == KLC_Finch.DecodeMode.RawYUV)
+                {
                     //Y
                     GL.Uniform1(m_shader_sampler[0], 1);
 
@@ -233,32 +200,21 @@ namespace NTR {
 
             GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
             GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
-            if (legacyWidth > 0)
-                GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferLegacy.Length / 2);
-            else
-                GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
+            GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
 
-            if (App.TexDecodeMode != DecodeMode.BitmapRGB)
+            if (App.TexDecodeMode != KLC_Finch.DecodeMode.BitmapRGB)
                 GL.ActiveTexture(TextureUnit.Texture0);
 
             return true;
         }
 
-        public void RenderNew() {
-            if (!IsNew /*|| rect == null*/)
+        public void RenderNew(int[] m_shader_sampler)
+        {
+            if (!IsNew || ID == -1 || rect.IsEmpty)
                 return;
 
-            if (ID == -1)
+            if (App.TexDecodeMode == DecodeMode.BitmapRGB)
             {
-                ID = GL.GenTexture();
-                if (App.TexDecodeMode == DecodeMode.RawYUV)
-                {
-                    IDu = GL.GenTexture();
-                    IDv = GL.GenTexture();
-                }
-            }
-
-            if (App.TexDecodeMode == DecodeMode.BitmapRGB) {
                 GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, ID);
 
@@ -278,7 +234,9 @@ namespace NTR {
 
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            } else {
+            }
+            else
+            {
                 GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride);
 
                 //Y
@@ -290,9 +248,10 @@ namespace NTR {
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
-                if (App.TexDecodeMode == DecodeMode.RawYUV) {
+                if (App.TexDecodeMode == DecodeMode.RawYUV)
+                {
                     //Y
-                    //GL.Uniform1(m_shader_sampler[0], 1); //InvalidOperation?
+                    GL.Uniform1(m_shader_sampler[0], 1);
 
                     GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride / 2);
 
@@ -304,7 +263,7 @@ namespace NTR {
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-                    //GL.Uniform1(m_shader_sampler[1], 2);
+                    GL.Uniform1(m_shader_sampler[1], 2);
 
                     //V
                     GL.ActiveTexture(TextureUnit.Texture3);
@@ -314,7 +273,7 @@ namespace NTR {
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-                    //GL.Uniform1(m_shader_sampler[2], 3);
+                    GL.Uniform1(m_shader_sampler[2], 3);
                 }
 
                 GL.ActiveTexture(TextureUnit.Texture0);

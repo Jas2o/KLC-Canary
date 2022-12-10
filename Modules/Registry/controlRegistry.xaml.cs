@@ -208,7 +208,7 @@ namespace KLC_Finch
 
                     TaskDialogButton tdbOk = new TaskDialogButton(ButtonType.Ok);
                     dialog.Buttons.Add(tdbOk);
-                    //TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                    //TaskDialogButton button = dialog.ShowDialog(window);
                 }
             }
         }

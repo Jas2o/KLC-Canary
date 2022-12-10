@@ -7,7 +7,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Net.NetworkInformation;
+using System.Reflection.PortableExecutable;
+using System.Text;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
@@ -24,7 +28,7 @@ namespace KLC_Finch
         public Settings Settings;
 
         private ClipBoardMonitor clipboardMon;
-        private FPSCounter fpsCounter;
+        //private FPSCounter fpsCounter;
         private readonly KeycodeV3 keyctrl = KeycodeV3.Dictionary[System.Windows.Forms.Keys.ControlKey];
         private KeyboardHook keyHook;
         private readonly KeycodeV3 keyshift = KeycodeV3.Dictionary[System.Windows.Forms.Keys.ShiftKey];
@@ -39,11 +43,8 @@ namespace KLC_Finch
         private string[] arrAdmins = new string[] { "administrator", "brandadmin", "adminc", "company" };
         private bool autotypeAlwaysConfirmed;
         private string clipboard = "";
-        private double fpsLast;
+        //private double fpsLast;
         private bool keyDownWin;
-        private Progress<int> progress;
-        private ProgressDialog progressDialog;
-        private int progressValue;
 
         private IRemoteControl rc; //Active
         private IRemoteControl _rcSwitch;
@@ -78,6 +79,8 @@ namespace KLC_Finch
         //private ScreenStatus screenStatus;
         private bool ssKeyHookAllow;
 
+        private WinRCFileTransfer winRCFileTransfer;
+
         public ControlViewer()
         {
             InitializeComponent();
@@ -87,7 +90,10 @@ namespace KLC_Finch
             toolVersion.Header = "Build date: " + App.Version;
 
             Settings = App.Settings;
-            switch (App.Settings.Renderer)
+            int renderer = App.Settings.Renderer;
+            if (!App.SupportsOpenGL)
+                renderer = 2;
+            switch (renderer)
             {
                 case 0:
                     rcv = new RCvOpenGL();
@@ -118,7 +124,7 @@ namespace KLC_Finch
             //}
             timerClipboard = new System.Timers.Timer(500); //Time changes
             timerClipboard.Elapsed += TimerClipboard_Elapsed;
-            fpsCounter = new FPSCounter();
+            //fpsCounter = new FPSCounter();
 
             //WindowUtilities.ActivateWindow(this);
 
@@ -255,7 +261,7 @@ namespace KLC_Finch
         {
             rc.state.previousScreen = rc.state.CurrentScreen;
             rc.state.CurrentScreen = screen;
-            rc.ChangeScreen(rc.state.CurrentScreen.screen_id);
+            rc.ChangeScreen(rc.state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
 
             rcv.CameraFromClickedScreen(screen, moveCamera);
 
@@ -298,10 +304,8 @@ namespace KLC_Finch
             if (rc == null)
                 return;
 
-            rc.state.socketAlive = true;
-
-            fpsLast = fpsCounter.GetFPS();
-            rc.state.screenStatus = ScreenStatus.Stable;
+            //rc.state.socketAlive = true;
+            //rc.state.screenStatus = ScreenStatus.Stable;
 
             rcv.Refresh();
         }
@@ -361,10 +365,9 @@ namespace KLC_Finch
                 });
             }
 
-            rc.state.socketAlive = true;
-
-            fpsLast = fpsCounter.GetFPS();
-            rc.state.screenStatus = ScreenStatus.Stable;
+            //rc.state.socketAlive = true;
+            //fpsLast = fpsCounter.GetFPS();
+            //rc.state.screenStatus = ScreenStatus.Stable;
 
             rcv.Refresh();
         }
@@ -415,7 +418,7 @@ namespace KLC_Finch
 
                 if (rc.state.CurrentScreen.Texture != null)
                 {
-                    rc.state.CurrentScreen.Texture.LoadRaw(/*rc.state.CurrentScreen.rect,*/ width, height, stride, buffer);
+                    rc.state.CurrentScreen.Texture.LoadRaw(rc.state.CurrentScreen.rect, width, height, stride, buffer);
                 }
                 else
                 {
@@ -456,7 +459,7 @@ namespace KLC_Finch
                     */
                 }
 
-                rc.state.textureLegacy.LoadRaw(/*new Rectangle(0, 0, rc.state.CurrentScreen.rect.Width, rc.state.CurrentScreen.rect.Height),*/ width, height, stride, buffer);
+                rc.state.textureLegacy.LoadRaw(new Rectangle(0, 0, rc.state.CurrentScreen.rect.Width, rc.state.CurrentScreen.rect.Height), width, height, stride, buffer);
             }
 
             /*
@@ -470,10 +473,10 @@ namespace KLC_Finch
                     ToolScreenFix_Click(null, null);
             }
             */
-            rc.state.socketAlive = true;
 
-            fpsLast = fpsCounter.GetFPS();
-            rc.state.screenStatus = ScreenStatus.Stable;
+            //rc.state.socketAlive = true;
+            //fpsLast = fpsCounter.GetFPS();
+            //rc.state.screenStatus = ScreenStatus.Stable;
 
             rcv.Refresh();
         }
@@ -607,7 +610,7 @@ namespace KLC_Finch
         {
             rc.state.previousScreen = rc.state.CurrentScreen;
             rc.state.CurrentScreen = rc.state.ListScreen.First(x => x.screen_id == id);
-            rc.ChangeScreen(rc.state.CurrentScreen.screen_id);
+            rc.ChangeScreen(rc.state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
 
             if (rc.state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
@@ -711,9 +714,8 @@ namespace KLC_Finch
             if (rc.state.endpointOS == Agent.OSProfile.Mac)
             {
                 return;
-
                 //This seems okayish sometimes for scale change, but not layout changes.
-                rc.UpdateScreensHack();
+                //rc.UpdateScreensHack();
             }
             else
             {
@@ -772,19 +774,19 @@ namespace KLC_Finch
                     case ConnectionStatus.Connected:
                         //txtRcConnecting.Visibility = Visibility.Collapsed;
 
-                        if (fpsCounter.SeemsAlive(5000))
+                        if (rc.state.fpsCounter.SeemsAlive(5000))
                         {
                             toolLatency.FontWeight = FontWeights.Normal;
                             //txtRcFrozen.Visibility = Visibility.Collapsed;
                         }
                         else
                         {
-                            fpsLast = 0;
+                            rc.state.fpsLast = 0;
                             toolLatency.Content = string.Format("Frozen? | {0} ms", rc.state.lastLatency);
                             toolLatency.FontWeight = FontWeights.Bold;
                             //txtRcFrozen.Visibility = Visibility.Visible;
                         }
-                        toolLatency.Content = string.Format("FPS: {0} | {1} ms", fpsLast, rc.state.lastLatency);
+                        toolLatency.Content = string.Format("FPS: {0} | {1} ms", rc.state.fpsLast, rc.state.lastLatency);
                         break;
 
                     case ConnectionStatus.Disconnected:
@@ -906,14 +908,22 @@ namespace KLC_Finch
         }
         */
 
+        /*
         private void ProgressDialog_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
         {
             while (progressValue < 100)
             {
                 progressDialog.ReportProgress(progressValue);
                 System.Threading.Thread.Sleep(100);
+
+                if (progressDialog.CancellationPending)
+                {
+                    rc.FileTransferDownloadCancel();
+                    break;
+                }
             }
         }
+        */
 
         private bool SwitchToLegacyRendering()
         {
@@ -1065,14 +1075,20 @@ namespace KLC_Finch
 
         private void toolOpenGLInfo_Click(object sender, RoutedEventArgs e)
         {
-            MessageBoxResult result = MessageBoxResult.OK;
-            if (rcv is RCvOpenGLWPF)
-                result = MessageBox.Show("Because you are using renderer GLWpfControl, you will need to manually reconnect Remote Control after this test. Would you like to proceed?", "KLC-Finch: OpenGL Info", MessageBoxButton.OKCancel);
-
-            if (result == MessageBoxResult.OK)
+            if (App.SupportsOpenGL)
             {
-                OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
-                MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
+                MessageBoxResult result = MessageBoxResult.OK;
+                if (rcv is RCvOpenGLWPF)
+                    result = MessageBox.Show("Because you are using renderer GLWpfControl, you will need to manually reconnect Remote Control after this test. Would you like to proceed?", "KLC-Finch: OpenGL Info", MessageBoxButton.OKCancel);
+
+                if (result == MessageBoxResult.OK)
+                {
+                    OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
+                    MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
+                }
+            } else
+            {
+                MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X"), "KLC-Finch: Non-OpenGL Info");
             }
         }
 
@@ -1139,7 +1155,7 @@ namespace KLC_Finch
 
             rc.state.previousScreen = rc.state.CurrentScreen;
             rc.state.CurrentScreen = rc.state.ListScreen.First(x => x.screen_name == screen_selected[0]);
-            rc.ChangeScreen(rc.state.CurrentScreen.screen_id);
+            rc.ChangeScreen(rc.state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
 
             if (rc.state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
@@ -1202,7 +1218,7 @@ namespace KLC_Finch
         private void ToolShowAlternative_Click(object sender, RoutedEventArgs e)
         {
             if(ConnectionManager.Active != null)
-                ConnectionManager.Active.ShowAlternativeWindow();
+                ConnectionManager.Active.ShowAlternativeWindow(rcv);
         }
 
         private void ToolShowMouse_Click(object sender, RoutedEventArgs e)
@@ -1302,15 +1318,18 @@ namespace KLC_Finch
                 //Environment.Exit(0);
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        public void Window_Closing(/*object sender, System.ComponentModel.CancelEventArgs e*/)
         {
+            if(winRCFileTransfer != null && winRCFileTransfer.IsVisible)
+                winRCFileTransfer.Close();
+
             timerHealth.Elapsed -= CheckHealth;
 
             if (keyHook.IsActive)
                 keyHook.Uninstall();
 
             //NotifySocketClosed(sessionId);
-            rc.Disconnect();
+            //rc.Disconnect();
 
             clipboardMon.OnUpdate -= SyncClipboard;
         }
@@ -1344,22 +1363,45 @@ namespace KLC_Finch
 
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                if (progressDialog != null && progressDialog.IsBusy)
-                    return;
+                //if (progressDialog != null && progressDialog.IsBusy)
+                //return;
+
+                if (winRCFileTransfer != null)
+                    winRCFileTransfer.Topmost = false;
 
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
                 bool doUpload = false;
-                bool showExplorer = false;
+                //bool showExplorer = false;
                 using (TaskDialog dialog = new TaskDialog())
                 {
-                    dialog.WindowTitle = "KLC-Finch: Upload File";
-                    dialog.MainInstruction = "Upload dropped file to KRCTransferFiles?";
+                    if (files.Length > 1)
+                    {
+                        dialog.WindowTitle = "KLC-Finch: Upload Multiple Files";
+                        dialog.MainInstruction = "Upload " + files.Length + " dropped files to KRCTransferFiles?";
+                    }
+                    else
+                    {
+                        dialog.WindowTitle = "KLC-Finch: Upload File";
+                        dialog.MainInstruction = "Upload dropped file to KRCTransferFiles?";
+                    }
                     dialog.MainIcon = TaskDialogIcon.Information;
                     dialog.CenterParent = true;
-                    dialog.Content = files[0];
-                    dialog.VerificationText = "Open file explorer when complete";
-                    dialog.IsVerificationChecked = true;
+
+                    long totalSize = 0;
+                    StringBuilder sb = new StringBuilder();
+                    foreach (string file in files)
+                    {
+                        sb.AppendLine(System.IO.Path.GetFileName(file));
+                        FileInfo fi = new FileInfo(file);
+                        totalSize += fi.Length;
+                    }
+                    StringBuilder totalSb = new StringBuilder(32);
+                    FormatKbSizeConverter.StrFormatByteSizeW(totalSize, totalSb, totalSb.Capacity);
+                    dialog.Content = totalSb.ToString() + "\r\n\r\n" + sb.ToString();
+
+                    //dialog.VerificationText = "Open file explorer when complete";
+                    //dialog.IsVerificationChecked = true;
 
                     TaskDialogButton tdbYes = new TaskDialogButton(ButtonType.Yes);
                     TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
@@ -1369,28 +1411,17 @@ namespace KLC_Finch
                     Window parent = App.winCharm != null ? (Window)App.winCharm : (Window)App.winStandaloneViewer;
                     TaskDialogButton button = dialog.ShowDialog(parent);
                     doUpload = (button == tdbYes);
-                    showExplorer = dialog.IsVerificationChecked;
+                    //showExplorer = dialog.IsVerificationChecked;
                 }
+
+                if (winRCFileTransfer != null)
+                    winRCFileTransfer.Topmost = true;
 
                 if (doUpload)
                 {
-                    progressValue = 0;
-                    progress = new Progress<int>(newValue => {
-                        progressValue = newValue;
-                    });
-                    progressDialog = new ProgressDialog
-                    {
-                        //ProgressBarStyle = ProgressBarStyle.MarqueeProgressBar,
-                        WindowTitle = "KLC-Finch: Upload File",
-                        Text = "Uploading to KRCTransferFiles...",
-                        Description = "Source file: " + files[0],
-                        ShowCancelButton = false,
-                        ShowTimeRemaining = true
-                    };
-                    progressDialog.DoWork += new DoWorkEventHandler(ProgressDialog_DoWork);
-                    progressDialog.Show();
-
-                    rc.UploadDrop(files[0], progress, showExplorer);
+                    ShowFileTransfer();
+                    //winRCFileTransfer.GoToTabUpload();
+                    rc.FileTransferUpload(files);
                 }
             }
         }
@@ -1609,6 +1640,52 @@ namespace KLC_Finch
             {
                 rcv.ParentStateChange(true);
             }
+        }
+
+        private void ShowFileTransfer()
+        {
+            if (winRCFileTransfer == null || !winRCFileTransfer.IsVisible)
+            {
+                winRCFileTransfer = new(rc)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+                winRCFileTransfer.Show();
+            }
+
+            Window win = (App.winCharm != null ? App.winCharm : App.winStandaloneViewer);
+            System.Windows.Point point = rcv.TransformToAncestor(win).Transform(new System.Windows.Point(0, 0));
+
+            if (win.WindowState == WindowState.Maximized)
+            {
+                IntPtr handle = new System.Windows.Interop.WindowInteropHelper(win).Handle;
+                System.Windows.Forms.Screen screen = System.Windows.Forms.Screen.FromHandle(handle);
+
+                point.X += (screen.WorkingArea.Width / 2);
+                point.X -= (winRCFileTransfer.Width / 2);
+
+                winRCFileTransfer.Left = screen.WorkingArea.Left + point.X + 2;
+                winRCFileTransfer.Top = screen.WorkingArea.Top + SystemParameters.CaptionHeight + point.Y + 10;
+            }
+            else
+            {
+                point.X += (win.Width / 2);
+                point.X -= (winRCFileTransfer.Width / 2);
+
+                winRCFileTransfer.Left = win.Left + point.X + 8;
+                winRCFileTransfer.Top = win.Top + SystemParameters.CaptionHeight + point.Y + 15;
+            }
+        }
+
+        private void ToolFileTransfer_Click(object sender, RoutedEventArgs e)
+        {
+            ShowFileTransfer();
+            /*
+            if(rc.Files.activeUpload != null)
+                winRCFileTransfer.GoToTabUpload();
+            else
+                winRCFileTransfer.GoToTabDownload();
+            */
         }
 
         /*

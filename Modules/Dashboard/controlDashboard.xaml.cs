@@ -175,5 +175,6 @@ namespace KLC_Finch {
             if (moduleDashboard != null)
                 moduleDashboard.UpdateTimer();
         }
+
     }
 }

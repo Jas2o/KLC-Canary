@@ -5,14 +5,18 @@ using System.Drawing;
 using System.Threading;
 using System.Windows.Input;
 
-namespace KLC_Finch {
-    public class RemoteControlTest : IRemoteControl {
-
+namespace KLC_Finch
+{
+    public class RemoteControlTest : IRemoteControl
+    {
         public ControlViewer Viewer;
         //public bool UseYUVShader { get { return false; } set { } }
         public DecodeMode DecodeMode { get; set; }
-
+        public bool IsMac { get; set; }
         public RCstate state { get; set; }
+        public Modules.RemoteControl.Transfer.RCFile Files { get; private set; }
+
+        //public RCstate state { get; set; }
         public bool IsPrivate
         {
             get
@@ -37,7 +41,7 @@ namespace KLC_Finch {
             Color.FromArgb(220, 108, 167), //Pink
             Color.FromArgb(57, 54, 122) //Purple
         };
-        private static byte[,] colorsYUV = new byte[5,3] {
+        private static byte[,] colorsYUV = new byte[5, 3] {
             { 203, 14, 161 }, //Yellow
             { 178, 55, 182 }, //Orange
             { 132, 149, 71 }, //Teal
@@ -59,6 +63,8 @@ namespace KLC_Finch {
             catch (Exception)
             {
             }
+
+            Files = new Modules.RemoteControl.Transfer.RCFile(isMac);
         }
 
         public bool LoopIsRunning()
@@ -66,7 +72,8 @@ namespace KLC_Finch {
             return (threadTest != null && threadTest.IsAlive);
         }
 
-        public void LoopStart(ControlViewer viewer) {
+        public void LoopStart(ControlViewer viewer)
+        {
             if (threadTest != null)
                 LoopStop();
 
@@ -86,17 +93,21 @@ namespace KLC_Finch {
             threadTest.Start();
         }
 
-        public void LoopStop() {
-            if (threadTest != null) {
+        public void LoopStop()
+        {
+            if (threadTest != null)
+            {
                 threadCTokenSource.Cancel();
                 threadTest.Join(1000);
             }
         }
 
-        private void Loop() {
+        private void Loop()
+        {
             Viewer.ClearApproval();
 
-            while (ConnectionManager.Alive) {
+            while (!threadCTokenSource.Token.IsCancellationRequested && Viewer.IsVisible)
+            {
                 Thread.Sleep(500);
 
                 NTR.RCScreen screen = state.CurrentScreen;// Viewer.GetCurrentScreen();
@@ -105,36 +116,17 @@ namespace KLC_Finch {
 
                 int width = screen.rectOrg.Width;
                 int height = screen.rectOrg.Height;
-                if (retina) {
+                if (retina)
+                {
                     width *= 2;
                     height *= 2;
                 }
-
-                Rectangle rect = screen.rectOrg;
-                rect.Width = width;
-                rect.Height = height;
 
                 if (App.TexDecodeMode == DecodeMode.BitmapRGB)
                 {
                     Bitmap bTest = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
                     using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(colors[colorPos]); }
-
-                    if (screen.Texture != null)
-                    {
-                        if (state.UseMultiScreen)
-                            state.CurrentScreen.Texture.Load(/*rect,*/ bTest);
-                        else
-                        {
-                            state.legacyVirtualWidth = width;
-                            state.legacyVirtualHeight = height;
-                            state.textureLegacy.Load(/*rect,*/ bTest);
-                        }
-                    } else
-                    {
-                        if(ConnectionManager.Active.RC == this)
-                            Viewer.LoadTexture(bTest.Width, bTest.Height, bTest);
-                    }
-
+                    state.LoadTexture(bTest.Width, bTest.Height, bTest);
                     bTest.Dispose();
                 }
                 else
@@ -148,43 +140,10 @@ namespace KLC_Finch {
                         yuv[i + sizeUV] = colorsYUV[colorPos, 1];
                         yuv[i + sizeUV + sizeUV] = colorsYUV[colorPos, 2];
                     }
-
-                    if (screen.Texture != null)
-                    {
-                        if (state.UseMultiScreen)
-                            state.CurrentScreen.Texture.LoadRaw(/*rect,*/ width, height, width, yuv);
-                        else
-                        {
-                            state.legacyVirtualWidth = width;
-                            state.legacyVirtualHeight = height;
-                            state.textureLegacy.LoadRaw(/*rect,*/ width, height, width, yuv);
-                        }
-                    } else
-                    {
-                        if (ConnectionManager.Active.RC == this)
-                            Viewer.LoadTextureRaw(yuv, width, height, width);
-                    }
+                    state.LoadTextureRaw(yuv, width, height, width);
                 }
 
                 Viewer.NotifyScreenUpdate();
-
-                /*
-                }
-                else
-                {
-                    if (App.TexDecodeMode == DecodeMode.BitmapRGB) {
-                        Bitmap bTest = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-                        using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(colors[colorPos]); }
-
-                        Viewer.LoadTexture(width, height, bTest);
-                    } else
-                    {
-
-                    }
-                }
-                */
-
-                //
 
                 GC.Collect();
 
@@ -194,103 +153,149 @@ namespace KLC_Finch {
             }
         }
 
-        public void CaptureNextScreen() {
+        public void CaptureNextScreen()
+        {
             //throw new NotImplementedException();
         }
 
-        public void UpdateScreens(string jsonstr) {
+        public void UpdateScreens(string jsonstr)
+        {
             screenStr = jsonstr;
         }
 
-        public void ChangeScreen(string screen_id) {
+        public void ChangeScreen(string screen_id, int clientH, int clientW)
+        {
             //Console.WriteLine("ChangeScreen: " + screen_id);
             //screenCurrent = screenList.Find(x => x.screen_id == screen_id);
         }
 
-        public void ChangeTSSession(string session_id) {
+        public void ChangeTSSession(string session_id)
+        {
             //throw new NotImplementedException();
         }
 
-        public void Disconnect() {
+        public void Disconnect()
+        {
+            LoopStop();
+            state.connectionStatus = ConnectionStatus.Disconnected;
+            state.socketAlive = false;
+        }
+        public void Disconnect(string sessionId)
+        {
             LoopStop();
             state.connectionStatus = ConnectionStatus.Disconnected;
             state.socketAlive = false;
         }
 
-        public void Reconnect() {
+        public void Reconnect()
+        {
             //LoopStart(Viewer);
         }
 
-        public void SendAutotype(string text) {
+        public void SendAutotype(string text)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendPasteClipboard(string clipboard) {
+        public void SendPasteClipboard(string clipboard)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendClipboard(string clipboard) {
+        public void SendClipboard(string clipboard)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendKeyDown(int javascriptKeyCode, int uSBKeyCode) {
+        public void SendKeyDown(int javascriptKeyCode, int uSBKeyCode)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendKeyUp(int javascriptKeyCode, int uSBKeyCode) {
+        public void SendKeyUp(int javascriptKeyCode, int uSBKeyCode)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMouseDown(MouseButton changedButton) {
+        public void SendMouseDown(MouseButton changedButton)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMouseDown(System.Windows.Forms.MouseButtons changedButton) {
+        public void SendMouseDown(System.Windows.Forms.MouseButtons changedButton)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMousePosition(int x, int y) {
+        public void SendMousePosition(int x, int y)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMouseUp(MouseButton changedButton) {
+        public void SendMouseUp(MouseButton changedButton)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMouseUp(System.Windows.Forms.MouseButtons changedButton) {
+        public void SendMouseUp(System.Windows.Forms.MouseButtons changedButton)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMouseWheel(int delta) {
+        public void SendMouseWheel(int delta)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SetRetina(bool isChecked) {
+        public void SetRetina(bool isChecked)
+        {
             retina = isChecked;
         }
 
-        public void SendPanicKeyRelease() {
+        public void SendPanicKeyRelease()
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendSecureAttentionSequence() {
+        public void SendSecureAttentionSequence()
+        {
             //throw new NotImplementedException();
         }
 
-        public void UploadDrop(string v, Progress<int> progress, bool showExplorer) {
+        public void FileTransferUpload(string[] files)
+        {
             //throw new NotImplementedException();
         }
 
-        public void ShowCursor(bool enabled) {
+        public void FileTransferUploadCancel()
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB) {
+        public void FileTransferDownload()
+        {
             //throw new NotImplementedException();
         }
 
-        public void UpdateScreensHack() {
+        public void FileTransferDownloadCancel()
+        {
             //throw new NotImplementedException();
         }
+
+        public void ShowCursor(bool enabled)
+        {
+            //throw new NotImplementedException();
+        }
+
+        public void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB)
+        {
+            //throw new NotImplementedException();
+        }
+
+        public void UpdateScreensHack()
+        {
+            //throw new NotImplementedException();
+        }
+
     }
 }

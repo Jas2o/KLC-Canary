@@ -15,11 +15,13 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace KLC_Finch {
+namespace KLC_Finch
+{
     /// <summary>
     /// Interaction logic for WindowScreens.xaml
     /// </summary>
-    public partial class WindowScreens : Window {
+    public partial class WindowScreens : Window
+    {
 
         private int offsetX, offsetY;
         private System.Drawing.Rectangle virtualCanvas, virtualView;
@@ -30,22 +32,22 @@ namespace KLC_Finch {
 
         public DateTime TimeDeactivated;
 
-        public WindowScreens(/*Agent.OSProfile endpointOS = Agent.OSProfile.Other*/) {
+        public WindowScreens(Agent.OSProfile endpointOS = Agent.OSProfile.Other)
+        {
             InitializeComponent();
             rcBorderExample.Visibility = Visibility.Hidden;
-            
-            /*
+
             if (endpointOS == Agent.OSProfile.Mac)
                 toolUpdate.Visibility = Visibility.Collapsed;
-            */
         }
 
-        private void Window_Activated(object sender, EventArgs e) {
+        private void Window_Activated(object sender, EventArgs e)
+        {
             if (Owner == null)
                 return;
             if (viewer == null)
             {
-                if(App.winCharm != null)
+                if (App.winCharm != null)
                     viewer = ((WindowCharm)Owner).controlViewer;
                 else
                     viewer = ((WindowViewerV4)Owner).controlViewer;
@@ -55,31 +57,58 @@ namespace KLC_Finch {
             this.Left = point.X;
             this.Top = point.Y + 35;
 
+            if (viewer != null && Owner.WindowState == WindowState.Maximized)
+            {
+                point = viewer.placeholder.TransformToAncestor(viewer).Transform(new Point(0, 0));
+
+                IntPtr handle = new System.Windows.Interop.WindowInteropHelper(Owner).Handle;
+                System.Windows.Forms.Screen screen = System.Windows.Forms.Screen.FromHandle(handle);
+
+                this.Left = screen.WorkingArea.Left;
+                this.Top = screen.WorkingArea.Top + SystemParameters.CaptionHeight + point.Y + 1;
+            }
+            else
+            {
+                this.Left = Owner.Left + 8;
+                this.Top = Owner.Top + 66;
+            }
+
             Render();
         }
 
-        private void Window_Deactivated(object sender, EventArgs e) {
+        private void Window_Deactivated(object sender, EventArgs e)
+        {
             this.Visibility = Visibility.Hidden;
             TimeDeactivated = DateTime.Now;
         }
 
-        public void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight) {
+        public void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight)
+        {
             offsetX = virtualX;
             offsetY = virtualY;
 
             virtualCanvas = new System.Drawing.Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
             virtualView = virtualCanvas;
 
-            if (this.Visibility == Visibility.Visible) {
+            if (this.Visibility == Visibility.Visible)
+            {
                 Dispatcher.Invoke((Action)delegate {
                     Render();
                 });
             }
         }
 
-        private void Render() {
-            if (viewer == null && Owner != null) {
-                viewer = ((WindowCharm)Owner).controlViewer;
+        private void Render()
+        {
+            if (viewer == null && Owner != null)
+            {
+                if(Owner is WindowViewerV4)
+                    viewer = ((WindowViewerV4)Owner).controlViewer;
+                if (Owner is WindowCharm)
+                    viewer = ((WindowCharm)Owner).controlViewer;
+                else
+                    return;
+
                 Window_Activated(null, null);
             }
             if (viewer == null)
@@ -93,7 +122,8 @@ namespace KLC_Finch {
             rcCanvas.Height = virtualCanvas.Height;
             rcCanvas.Children.Clear();
 
-            foreach (RCScreen screen in listScreen) {
+            foreach (RCScreen screen in listScreen)
+            {
                 Border r = new Border();
                 TextBlock t = new TextBlock();
 
@@ -137,12 +167,14 @@ namespace KLC_Finch {
             }
         }
 
-        private void Border_MouseDown(object sender, MouseButtonEventArgs e) {
+        private void Border_MouseDown(object sender, MouseButtonEventArgs e)
+        {
             string id = (string)((Border)sender).Tag;
             viewer.SetScreen(id);
         }
 
-        public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight) {
+        public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight)
+        {
             //virtualView = new System.Drawing.Rectangle(virtualX, virtualY, virtualWidth, virtualHeight);
 
             //virtualRequireViewportUpdate = true;
@@ -150,11 +182,13 @@ namespace KLC_Finch {
             rcViewbox.Stretch = Stretch.None;
         }
 
-        private void ToolUpdate_Click(object sender, RoutedEventArgs e) {
+        private void ToolUpdate_Click(object sender, RoutedEventArgs e)
+        {
             viewer.UpdateScreenLayoutHack();
         }
 
-        private void ToolReflow_Click(object sender, RoutedEventArgs e) {
+        private void ToolReflow_Click(object sender, RoutedEventArgs e)
+        {
             List<RCScreen> listScreen = viewer.GetListScreen();
             if (listScreen == null)
                 return;
@@ -163,11 +197,16 @@ namespace KLC_Finch {
             if (center == null)
                 return;
 
-            foreach(RCScreen screen in listScreen) {
-                if (screen != center) {
-                    if (screen.rectOrg.X > 0) {
+            foreach (RCScreen screen in listScreen)
+            {
+                if (screen != center)
+                {
+                    if (screen.rectOrg.X > 0)
+                    {
                         screen.rect.X = center.rect.Right;
-                    } else if (screen.rectOrg.X < 0) {
+                    }
+                    else if (screen.rectOrg.X < 0)
+                    {
                         screen.rect.X = -screen.rect.Width;
                     }
                 }
@@ -176,19 +215,22 @@ namespace KLC_Finch {
             viewer.UpdateScreenLayoutReflow();
         }
 
-        private void toolReset_Click(object sender, RoutedEventArgs e) {
+        private void toolReset_Click(object sender, RoutedEventArgs e)
+        {
             List<RCScreen> listScreen = viewer.GetListScreen();
             if (listScreen == null)
                 return;
 
-            foreach (RCScreen screen in listScreen) {
+            foreach (RCScreen screen in listScreen)
+            {
                 screen.rect = screen.rectOrg;
             }
 
             viewer.UpdateScreenLayoutReflow();
         }
 
-        private void ToolDump_Click(object sender, RoutedEventArgs e) {
+        private void ToolDump_Click(object sender, RoutedEventArgs e)
+        {
             List<RCScreen> listScreen = viewer.GetListScreen();
 
             StringBuilder sb = new StringBuilder();
@@ -197,7 +239,8 @@ namespace KLC_Finch {
             sb.AppendLine("");
             sb.AppendLine("Current info:");
             bool more = false;
-            foreach (RCScreen screen in listScreen) {
+            foreach (RCScreen screen in listScreen)
+            {
                 if (more)
                     sb.Append(",");
 
@@ -209,7 +252,8 @@ namespace KLC_Finch {
             Clipboard.SetDataObject(sb.ToString());
         }
 
-        public void UpdateStartScreens(string info) {
+        public void UpdateStartScreens(string info)
+        {
             infoStart = info;
         }
 

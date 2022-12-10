@@ -411,9 +411,9 @@ namespace KLC_Finch {
             //lock (lockFrameBuf) {
             foreach (RCScreen screen in rc.state.ListScreen) {
                 if (screen.Texture == null)
-                    screen.Texture = new TextureScreen(screen.rect);//rc.DecodeMode
+                    screen.Texture = new TextureScreen();//rc.DecodeMode
                 else
-                    screen.Texture.RenderNew();
+                    screen.Texture.RenderNew(m_shader_sampler);
             }
             if (rc.state.UseMultiScreen) {
                 if (rc.state.textureCursor == null) {
@@ -423,7 +423,7 @@ namespace KLC_Finch {
             }
             if (!rc.state.UseMultiScreen) {
                 if (rc.state.textureLegacy != null)
-                    rc.state.textureLegacy.RenderNew();
+                    rc.state.textureLegacy.RenderNew(m_shader_sampler);
             }
             //}
 
@@ -512,7 +512,7 @@ namespace KLC_Finch {
                 }
             } else {
                 //Legacy behavior
-                if (!rc.state.textureLegacy.Render(shader_program, m_shader_sampler, m_shader_multiplyColor, System.Drawing.Color.White, rc.state.legacyVirtualWidth, rc.state.legacyVirtualHeight)) {
+                if (!rc.state.textureLegacy.Render(shader_program, m_shader_sampler, m_shader_multiplyColor, System.Drawing.Color.White)) {
                     GL.Disable(EnableCap.Texture2D);
                     GL.UseProgram(0);
                     GL.Color3(System.Drawing.Color.DimGray);

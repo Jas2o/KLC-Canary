@@ -92,7 +92,7 @@ namespace KLC_Finch {
                         session.ModuleRemoteControl.state.UpdateScreenLayout(json);
                         session.ModuleRemoteControl.Viewer.UpdateScreenLayout(jsonstr);
 
-                        if (session.ModuleRemoteControl.mode == Enums.RC.Shared)
+                        if (session.ModuleRemoteControl.Mode == Enums.RC.Shared)
                             session.ModuleRemoteControl.Viewer.SetControlEnabled(session.ModuleRemoteControl.state, true, true);
                         else
                             session.ModuleRemoteControl.Viewer.SetControlEnabled(session.ModuleRemoteControl.state, true, false);
@@ -180,15 +180,6 @@ namespace KLC_Finch {
                 SendThumbnailRequest(currentScreen.rect.Width, currentScreen.rect.Height);
         }
 
-        public void RequestRefreshFullDouble()
-        {
-            timerRefresh.Stop();
-            timerRefresh.Start();
-
-            if (currentScreen != null)
-                SendThumbnailRequest(currentScreen.rect.Width*2, currentScreen.rect.Height*2);
-        }
-
         public void ClearScreens() {
             listScreen.Clear();
             currentScreen = null;
@@ -253,7 +244,7 @@ namespace KLC_Finch {
         public void ReconnectHack()
         {
             useReconnectHack = true;
-            if(serverB != null && serverB.IsAvailable)
+            if (serverB != null && serverB.IsAvailable)
                 serverB.Close();
             session.WebsocketB.ControlAgentSendStaticImage(150, 300);
         }

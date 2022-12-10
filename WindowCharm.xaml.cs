@@ -29,6 +29,8 @@ namespace KLC_Finch
         //private RCv rcv;
         //private RCstate state;
         private readonly NamedPipeListener pipeListener;
+        private string authToken;
+        private string vsa;
 
         public WindowCharm()
         {
@@ -51,8 +53,7 @@ namespace KLC_Finch
                 this.Height = screen.WorkingArea.Height / dpiScale.PixelsPerDip;
 
             bool createdNew = true;
-            if (App.mutex == null)
-                App.mutex = new Mutex(true, App.appName, out createdNew);
+            App.mutex ??= new Mutex(true, App.appName, out createdNew);
             if (createdNew)
             {
                 try
@@ -104,12 +105,12 @@ namespace KLC_Finch
         private void LaunchFromArgument(string base64)
         {
             KLCCommand command = KLCCommand.NewFromBase64(base64);
-            Kaseya.LoadToken(command.payload.auth.Token);
-            Kaseya.LaunchNotify(command.launchNotifyUrl);
+            Kaseya.LoadToken(command.VSA, command.payload.auth.Token);
+            Kaseya.LaunchNotify(command.VSA, command.launchNotifyUrl);
 
             Dispatcher.Invoke((Action)delegate {
                 WindowUtilities.ActivateWindow(this);
-                AddReal(command.payload.agentId);
+                AddReal(command.VSA, command.payload.auth.Token, command.payload.agentId);
             });
         }
 
@@ -179,15 +180,15 @@ namespace KLC_Finch
             btnSessionClose.IsEnabled = true;
         }
 
-        private void btnAlt_Click(object sender, RoutedEventArgs e)
+        private void BtnAlt_Click(object sender, RoutedEventArgs e)
         {
             if (ConnectionManager.Active == null || !ConnectionManager.Active.IsReal)
                 return;
 
-            ConnectionManager.Active.ShowAlternativeWindow();
+            ConnectionManager.Active.ShowAlternativeWindow(btnAlt);
         }
 
-        private void btnRCAdd_Click(object sender, RoutedEventArgs e)
+        private void BtnRCAdd_Click(object sender, RoutedEventArgs e)
         {
             if(ConnectionManager.Active == null)
                 return;
@@ -214,7 +215,7 @@ namespace KLC_Finch
             btnRCClose.IsEnabled = true;
         }
 
-        private void btnRCClose_Click(object sender, RoutedEventArgs e)
+        private void BtnRCClose_Click(object sender, RoutedEventArgs e)
         {
             btnRCClose.IsEnabled = false;
             ConnectionManager.DisconnectRC();
@@ -265,12 +266,12 @@ namespace KLC_Finch
             }
         }
 
-        private void btnSessionClose_Click(object sender, RoutedEventArgs e)
+        private void BtnSessionClose_Click(object sender, RoutedEventArgs e)
         {
             DisconnectAndRemoveActiveSession();
         }
 
-        private void btnSideCollapse_Click(object sender, RoutedEventArgs e)
+        private void BtnSideCollapse_Click(object sender, RoutedEventArgs e)
         {
             if (gridSide.Width > 70)
                 gridSide.Width = 70;
@@ -278,7 +279,7 @@ namespace KLC_Finch
                 gridSide.Width = 150;
         }
 
-        private void tabRC_GotFocus(object sender, RoutedEventArgs e)
+        private void TabRC_GotFocus(object sender, RoutedEventArgs e)
         {
             //Required for OpenGLWPF otherwise the keyboard doesn't work.
             controlViewer.Focus();
@@ -314,7 +315,7 @@ namespace KLC_Finch
             conn.Control.btnAgent.Style = itemsActiveConnections.FindResource("btnAgent") as Style;
             conn.Control.btnAgent.Click += BtnMachine_Click;
             conn.Control.btnRCShared.Style = itemsActiveConnections.FindResource("btnRC") as Style;
-            conn.Control.btnRCShared.Click += btnRC_Click;
+            conn.Control.btnRCShared.Click += BtnRC_Click;
             stack.Children.Add(conn.Control.btnAgent);
             stack.Children.Add(conn.Control.btnRCShared);
 
@@ -322,9 +323,9 @@ namespace KLC_Finch
             SelectionUpdateUI();
         }
 
-        private void btnAddExampleTest_Click(object sender, RoutedEventArgs e)
+        private void BtnAddExampleTest_Click(object sender, RoutedEventArgs e)
         {
-            WindowRCTest2 winTest = new WindowRCTest2()
+            WindowRCTest2 winTest = new()
             {
                 Owner = this
             };
@@ -342,20 +343,20 @@ namespace KLC_Finch
             }
         }
 
-        private void btnAddByID_Click(object sender, RoutedEventArgs e)
+        private void BtnAddByID_Click(object sender, RoutedEventArgs e)
         {
-            WindowInputStringConfirm wrk = new WindowInputStringConfirm("Add agent by ID", "", "")
+            WindowInputStringConfirm wrk = new("Add agent by ID", "", "")
             {
                 Owner = this
             };
             bool accept = (bool)wrk.ShowDialog();
             if (accept)
             {
-                AddReal(wrk.ReturnName);
+                AddReal(vsa, authToken, wrk.ReturnName);
             }
         }
 
-        private void btnAddExampleThis_Click(object sender, RoutedEventArgs e)
+        private void BtnAddExampleThis_Click(object sender, RoutedEventArgs e)
         {
             string val = "";
 
@@ -370,41 +371,26 @@ namespace KLC_Finch
                 }
 
                 if (val.Length > 0)
-                    AddReal(val);
+                    AddReal(vsa, authToken, val);
             }
             catch (Exception)
             {
             }
         }
 
-        private void btnAddExampleTeamV_Click(object sender, RoutedEventArgs e)
-        {
-            AddReal("111111111111111");
-        }
-
-        private void btnAddExampleMac_Click(object sender, RoutedEventArgs e)
-        {
-            AddReal("396130197451961");
-        }
-
-        private void btnAddJasonMac_Click(object sender, RoutedEventArgs e)
-        {
-            AddReal("181240160300176");
-        }
-
-        private void AddReal(string val)
+        private void AddReal(string vsa, string shortToken, string agentID)
         {
             try
             {
-                if (val.Length > 0)
+                if (agentID.Length > 0)
                 {
                     btnAlt.IsEnabled = btnRCAdd.IsEnabled = false;
 
-                    //WindowAlternative.StatusCallback callback = new WindowAlternative.StatusCallback(StatusUpdate);
-                    //WindowAlternative.StatusCallback callback = null;
-                    //conn = ConnectionManager.AddReal(val, Kaseya.Token, /*this,*/ callback);
+                    ////WindowAlternative.StatusCallback callback = new WindowAlternative.StatusCallback(StatusUpdate);
+                    ////WindowAlternative.StatusCallback callback = null;
+                    ////conn = ConnectionManager.AddReal(val, Kaseya.Token, /*this,*/ callback);
 
-                    WindowAlternative winAlt = new WindowAlternative(val, Kaseya.Token);
+                    WindowAlternative winAlt = new(agentID, vsa, shortToken);
                     if (winAlt.conn == null)
                         return;
                     AddConnectionToUI(winAlt.conn, winAlt.conn.LCSession.agent.MachineGroupReverse);
@@ -425,7 +411,7 @@ namespace KLC_Finch
             SelectionUpdateUI();
         }
 
-        private void btnRC_Click(object sender, RoutedEventArgs e)
+        private void BtnRC_Click(object sender, RoutedEventArgs e)
         {
             Connection conn = (Connection)((Button)sender).Tag;
             ConnectionManager.Switch(conn);
@@ -460,7 +446,7 @@ namespace KLC_Finch
                 Environment.Exit(0);
             }
 
-            using (TaskDialog dialog = new TaskDialog())
+            using (TaskDialog dialog = new())
             {
                 dialog.WindowTitle = "KLC-Finch+";
                 dialog.MainInstruction = "Disconnect/Exit";
@@ -474,9 +460,9 @@ namespace KLC_Finch
                 //dialog.VerificationText = "Close all sessions";
                 //dialog.IsVerificationChecked = true;
 
-                TaskDialogButton tdbCancel = new TaskDialogButton("Cancel");
-                TaskDialogButton tdbDisconnect = new TaskDialogButton("Disconnect from " + ConnectionManager.Active.Label);
-                TaskDialogButton tdbExit = new TaskDialogButton("Completely exit");
+                TaskDialogButton tdbCancel = new("Cancel");
+                TaskDialogButton tdbDisconnect = new("Disconnect from " + ConnectionManager.Active.Label);
+                TaskDialogButton tdbExit = new("Completely exit");
 
                 dialog.Buttons.Add(tdbCancel);
                 dialog.Buttons.Add(tdbDisconnect);
@@ -510,7 +496,7 @@ namespace KLC_Finch
             e.Handled = false;
         }
 
-        private void tabAlt_GotFocus(object sender, RoutedEventArgs e)
+        private void TabAlt_GotFocus(object sender, RoutedEventArgs e)
         {
             ConnectUpdateUI();
         }
@@ -524,7 +510,17 @@ namespace KLC_Finch
         {
             txtVersion.Text = App.Version;
 
-            Kaseya.LoadToken(KaseyaAuth.GetStoredAuth());
+            foreach (KeyValuePair<string, KaseyaVSA> v in Kaseya.VSA)
+            {
+                if (v.Value.Token != null)
+                {
+                    vsa = v.Key;
+                    authToken = v.Value.Token;
+                    btnLoadToken.Visibility = Visibility.Collapsed;
+                    break;
+                }
+            }
+
             string[] args = Environment.GetCommandLineArgs();
             for (int i = 1; i < args.Length; i++)
             {
@@ -533,44 +529,46 @@ namespace KLC_Finch
                     LaunchFromArgument(args[i]);
                 }
             }
-            if (Kaseya.Token != null)
-                btnLoadToken.Visibility = Visibility.Collapsed;
 
-            foreach (Bookmark bm in Bookmarks.List)
+            foreach (Bookmark bm in App.Shared.Bookmarks)
             {
-                if (bm.Type == "Agent")
-                    cmbBookmarks.Items.Add(bm);
+                cmbBookmarks.Items.Add(bm);
             }
         }
 
-        private void btnTestThing_Click(object sender, RoutedEventArgs e)
+        private void BtnTestThing_Click(object sender, RoutedEventArgs e)
         {
             SelectionUpdateUI();
         }
 
-        private void cmbBookmarks_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private void CmbBookmarks_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             Bookmark selected = (Bookmark)cmbBookmarks.SelectedItem;
-            if (selected == null || selected.Type != "Agent")
+            if (selected == null)
                 return;
 
-            AddReal(selected.Value);
+            AddReal(selected.VSA, authToken, selected.AgentGUID);
         }
 
-        private void btnSettings_Click(object sender, RoutedEventArgs e)
+        private void BtnSettings_Click(object sender, RoutedEventArgs e)
         {
-            WindowOptions winOptions = new WindowOptions(ref App.Settings, true)
+            WindowOptions winOptions = new(ref App.Settings, true)
             {
                 Owner = this
             };
             winOptions.ShowDialog();
         }
 
-        private void btnLoadToken_Click(object sender, RoutedEventArgs e)
+        private void BtnLoadToken_Click(object sender, RoutedEventArgs e)
         {
-            Kaseya.LoadToken(WindowAuthToken.GetInput(Kaseya.Token, this));
-            if (Kaseya.Token != null)
+            WindowAuthToken entry = new()
+            {
+                Owner = this
+            };
+            if (entry.ShowDialog() == true)
+            {
                 btnLoadToken.Visibility = Visibility.Collapsed;
+            }
         }
 
         private void Window_Activated(object sender, EventArgs e)

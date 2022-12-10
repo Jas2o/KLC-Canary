@@ -38,7 +38,7 @@
                 <Button
                     x:Name="btnSideCollapse"
                     VerticalAlignment="Top"
-                    Click="btnSideCollapse_Click"
+                    Click="BtnSideCollapse_Click"
                     Content="&lt;&lt;" />
                 <Expander
                     Margin="0,5,0,0"
@@ -48,17 +48,17 @@
                         <Button
                             x:Name="btnAddByID"
                             Margin="0,5,0,0"
-                            Click="btnAddByID_Click"
+                            Click="BtnAddByID_Click"
                             Content="By ID" />
                         <Button
                             x:Name="btnAddTest"
                             Margin="0,5,0,0"
-                            Click="btnAddExampleTest_Click"
+                            Click="BtnAddExampleTest_Click"
                             Content="Test" />
                         <Button
                             x:Name="btnAddThis"
                             Margin="0,5,0,0"
-                            Click="btnAddExampleThis_Click"
+                            Click="BtnAddExampleThis_Click"
                             Content="This Computer" />
                         <ListBox
                             x:Name="cmbBookmarks"
@@ -66,7 +66,7 @@
                             Margin="0,5,0,0"
                             Background="#FFF0F0F0"
                             DisplayMemberPath="Display"
-                            MouseDoubleClick="cmbBookmarks_MouseDoubleClick" />
+                            MouseDoubleClick="CmbBookmarks_MouseDoubleClick" />
                     </StackPanel>
                 </Expander>
                 <Separator Margin="0,5,0,0" />
@@ -211,13 +211,13 @@
                 <Button
                     x:Name="btnSettings"
                     Margin="0,0,0,5"
-                    Click="btnSettings_Click"
+                    Click="BtnSettings_Click"
                     Content="Settings" />
                 <Button
                     x:Name="btnLoadToken"
                     Margin="0,0,0,5"
                     Background="Gold"
-                    Click="btnLoadToken_Click"
+                    Click="BtnLoadToken_Click"
                     Content="Load Token" />
                 <TextBlock
                     x:Name="txtVersion"
@@ -233,7 +233,7 @@
         <TabControl Grid.Column="2" Padding="0">
             <TabItem
                 x:Name="tabAlt"
-                GotFocus="tabAlt_GotFocus"
+                GotFocus="TabAlt_GotFocus"
                 Header="Session">
                 <Grid>
                     <StackPanel Margin="5,0" HorizontalAlignment="Left">
@@ -242,34 +242,34 @@
                             Width="100"
                             Height="100"
                             Margin="0,10,0,0"
-                            Click="btnAlt_Click"
+                            Click="BtnAlt_Click"
                             Content="Alternative" />
                         <Button
                             x:Name="btnRCAdd"
                             Width="100"
                             Height="100"
                             Margin="0,10,0,0"
-                            Click="btnRCAdd_Click"
+                            Click="BtnRCAdd_Click"
                             Content="RC Shared" />
                         <Button
                             x:Name="btnRCClose"
                             Width="100"
                             Margin="0,10,0,0"
-                            Click="btnRCClose_Click"
+                            Click="BtnRCClose_Click"
                             Content="Close RC" />
                         <Button
                             x:Name="btnSessionClose"
                             Width="100"
                             Height="50"
                             Margin="0,50,0,0"
-                            Click="btnSessionClose_Click"
+                            Click="BtnSessionClose_Click"
                             Content="Close Session" />
                     </StackPanel>
                 </Grid>
             </TabItem>
             <TabItem
                 x:Name="tabRC"
-                GotFocus="tabRC_GotFocus"
+                GotFocus="TabRC_GotFocus"
                 Header="Remote Control">
                 <local:ControlViewer
                     x:Name="controlViewer"

@@ -11,10 +11,11 @@ namespace NTR {
         public string screen_name;
         //public int screen_height;
         //public int screen_width;
-        public int screen_x;
-        public int screen_y;
+        //public int screen_x;
+        //public int screen_y;
 
         public Rectangle rect;
+        public Rectangle rectEdge;
         public Rectangle rectOrg { get; private set; }
         //public Rectangle rectFixed;
 
@@ -23,25 +24,17 @@ namespace NTR {
         public System.Windows.Controls.Image CanvasImage;
         private static ColorPalette grayPalette;
 
-        //Before Kaseya fixed Macs
-        //public bool IsScaled;
-        //public int RawWidth;
-        //public int RawHeight;
-        //public double MouseScale;
-
         public RCScreen(string screen_id, string screen_name, int screen_height, int screen_width, int screen_x, int screen_y) {
             this.screen_id = screen_id;
             this.screen_name = screen_name;
             //this.screen_height = screen_height;
             //this.screen_width = screen_width;
-            this.screen_x = screen_x;
-            this.screen_y = screen_y;
+            //this.screen_x = screen_x;
+            //this.screen_y = screen_y;
 
             rect = new Rectangle(screen_x, screen_y, screen_width, screen_height);
+            rectEdge = new Rectangle(screen_x - 10, screen_y - 10, screen_width + 20, screen_height + 20);
             rectOrg = new Rectangle(screen_x, screen_y, screen_width, screen_height);
-
-            //RawWidth = screen_width;
-            //RawHeight = screen_height;
 
             /*
             //--

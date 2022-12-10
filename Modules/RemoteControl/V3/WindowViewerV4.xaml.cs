@@ -84,41 +84,7 @@ namespace KLC_Finch
             btnRCClose.IsEnabled = (ConnectionManager.Active.RC != null && ConnectionManager.Active.RC.state.connectionStatus == ConnectionStatus.Connected);
             btnSessionClose.IsEnabled = true;
         }
-        */
 
-        private void btnAlt_Click(object sender, RoutedEventArgs e)
-        {
-            if (ConnectionManager.Active == null || !ConnectionManager.Active.IsReal)
-                return;
-
-            ConnectionManager.Active.ShowAlternativeWindow();
-        }
-
-        private void btnRCAdd_Click(object sender, RoutedEventArgs e)
-        {
-            if(ConnectionManager.Active == null)
-                return;
-
-            //ConnectionManager.Active.Control.btnRCShared.Visibility = Visibility.Visible;
-
-            if (ConnectionManager.Active.IsReal)
-            {
-                if (ConnectionManager.Active.LCSession.WebsocketB == null || !ConnectionManager.Active.LCSession.WebsocketB.ControlAgentIsReady())
-                    return;
-                if (ConnectionManager.Active.RC != null && ConnectionManager.Active.RC.state.connectionStatus != ConnectionStatus.Disconnected)
-                    return;
-                ConnectionManager.Active.LCSession.ModuleRemoteControl = new RemoteControl(ConnectionManager.Active.LCSession, RC.Shared);
-                ConnectionManager.Active.LCSession.ModuleRemoteControl.ConnectV1(this);
-            } else
-            {
-                RemoteControlTest rcTest = (RemoteControlTest)ConnectionManager.Active.RC;
-                if(!rcTest.LoopIsRunning())
-                    rcTest.LoopStart(controlViewer);
-                //controlViewer.Start(ConnectionManager.Active.RC.state, LibKaseya.Agent.OSProfile.Other);
-            }
-        }
-
-        /*
         private void btnRCClose_Click(object sender, RoutedEventArgs e)
         {
             ConnectionManager.DisconnectRC();
@@ -153,6 +119,8 @@ namespace KLC_Finch
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            controlViewer.Window_Closing();
+
             ConnectionManager.Alive = false;
             ConnectionManager.DisconnectRC();
 

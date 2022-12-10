@@ -1,5 +1,5 @@
-﻿using KLC;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
+using Ookii.Dialogs.Wpf;
 using System;
 using System.ComponentModel;
 using System.Windows;
@@ -13,14 +13,15 @@ namespace KLC_Finch
     /// <summary>
     /// Interaction logic for WindowAlternative.xaml
     /// </summary>
-    public partial class WindowAlternative : Window {
-
+    public partial class WindowAlternative : Window
+    {
         private static SolidColorBrush brushBlue1 = new SolidColorBrush(Colors.DeepSkyBlue);
         private static SolidColorBrush brushBlue2 = new SolidColorBrush(Colors.DodgerBlue);
 
         public Connection conn { get; private set; }
         public KLC.LiveConnectSession session;
         public bool socketActive { get; private set; }
+        private string vsa;
         private string agentID;
         private string shortToken;
 
@@ -29,7 +30,8 @@ namespace KLC_Finch
         private bool dashLoaded;
         private uint connectionAttempt;
 
-        public WindowAlternative() {
+        public WindowAlternative()
+        {
             InitializeComponent();
         }
 
@@ -37,17 +39,19 @@ namespace KLC_Finch
         /// Standalone
         /// </summary>
         /// <param name="agentID"></param>
+        /// <param name="vsa"></param>
         /// <param name="shortToken"></param>
         /// <param name="directToRemoteControl"></param>
         /// <param name="directToMode"></param>
-        public WindowAlternative(string agentID, string shortToken, OnConnect directAction = OnConnect.NoAction, RC directToMode = RC.Shared)
+        public WindowAlternative(string agentID, string vsa, string shortToken, OnConnect directAction = OnConnect.NoAction, RC directToMode = RC.Shared)
         {
             InitializeComponent();
 
-            if (/*App.winCharm != null ||*/ agentID == null || shortToken == null)
+            if (/*App.winCharm != null ||*/ agentID == null || vsa == null || shortToken == null)
                 return;
             //App.winStandalone = this;
 
+            this.vsa = vsa;
             this.agentID = agentID;
             this.shortToken = shortToken;
             this.directAction = directAction;
@@ -89,14 +93,11 @@ namespace KLC_Finch
 
             //WindowCharm.HasConnected callback = (directToRC ? new WindowCharm.HasConnected(ConnectDirect) : new WindowCharm.HasConnected(ConnectNotDirect));
             StatusCallback callback = new StatusCallback(StatusUpdate);
-            conn = ConnectionManager.AddReal(agentID, shortToken, callback, this);
-            session = conn.LCSession;
-            if (session.Eirc == null)
-            {
-                session = null;
+            conn = ConnectionManager.AddReal(agentID, vsa, shortToken, callback, this);
+            if (conn == null || conn.LCSession == null)
                 return;
-            }
-            this.Title = session.agent.Name + " - KLC-Finch";
+            session = conn.LCSession;
+            this.Title = session.agent.Name + " - " + vsa + " - KLC-Finch";
             btnRCOneClick.IsEnabled = session.agent.OneClickAccess;
 
             WindowUtilities.ActivateWindow(this);
@@ -128,7 +129,8 @@ namespace KLC_Finch
         }
         */
 
-        public void Disconnect(string sessionGuid, int reason) {
+        public void Disconnect(string sessionGuid, int reason)
+        {
             if (session.RandSessionGuid != sessionGuid || !socketActive)
                 return;
 
@@ -162,7 +164,15 @@ namespace KLC_Finch
         public void StatusUpdate(EPStatus status)
         {
             if (status == EPStatus.Connected && directAction != OnConnect.NoAction)
-                session.ModuleRemoteControl = new RemoteControl(session, directToMode);
+            {
+                if (directToMode == RC.NativeRDP)
+                {
+                    session.WebsocketB.ControlAgentSendRDP_StateRequest();
+                    return;
+                }
+                else
+                    session.ModuleRemoteControl = new RemoteControl(session, directToMode);
+            }
 
             Application.Current.Dispatcher.Invoke((Action)delegate
             {
@@ -216,10 +226,32 @@ namespace KLC_Finch
                         borderStatus.Visibility = Visibility.Visible;
                         break;
 
+                    case EPStatus.UnableToStartSession:
+                        txtStatus.Text = "Unable to start session with endpoint.";
+                        borderStatus.Background = new SolidColorBrush(Colors.DimGray);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+
                     case EPStatus.AuthFailed:
                         txtStatus.Text = "Authentication failure or cannot communicate with VSA.";
                         borderStatus.Background = new SolidColorBrush(Colors.DimGray);
                         borderStatus.Visibility = Visibility.Visible;
+                        break;
+
+                    case EPStatus.NativeRDPStarting:
+                        txtStatus.Text = "Native RDP - Starting TCP Tunneling";
+                        borderStatus.Background = new SolidColorBrush(Colors.Green);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+                    case EPStatus.NativeRDPActive:
+                        txtStatus.Text = "Native RDP - TCP Tunneling Active";
+                        borderStatus.Background = new SolidColorBrush(Colors.Green);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+                    case EPStatus.NativeRDPEnded:
+                        txtStatus.Text = "Native RDP - Ended";
+                        borderStatus.Background = new SolidColorBrush(Colors.Green);
+                        borderStatus.Visibility = Visibility.Collapsed;
                         break;
 
                     default:
@@ -254,21 +286,31 @@ namespace KLC_Finch
         }
         */
 
-        private void ConnectUpdateUI() {
-            if (App.Settings.AltModulesStartAuto) {
-                for (int i = 1; i < tabControl.Items.Count; i++) {
+        private void ConnectUpdateUI()
+        {
+            if (App.Settings.AltModulesStartAuto)
+            {
+                for (int i = 1; i < tabControl.Items.Count; i++)
+                {
                     ((TabItem)tabControl.Items[i]).IsEnabled = true;
                 }
             }
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e) {
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
             txtVersion.Text = App.Version;
 
             if (shortToken == null || agentID == null || session == null)
                 return; //Dragablz
 
-            if (session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac) {
+            if (!App.Settings.AltShowAlphaTab)
+                tabAlpha.Visibility = Visibility.Collapsed;
+
+            if (session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac)
+            {
+                btnRCNativeRDP.Visibility = Visibility.Collapsed;
+
                 tabCommand.Header = "Terminal";
                 ctrlCommand.chkAllowColour.IsChecked = true;
 
@@ -276,7 +318,9 @@ namespace KLC_Finch
                 tabRegistry.Visibility = Visibility.Collapsed;
                 tabEvents.Visibility = Visibility.Collapsed;
                 tabServices.Visibility = Visibility.Collapsed;
-            } else {
+            }
+            else
+            {
                 ctrlCommand.btnCommandMacKillKRCH.Visibility = Visibility.Collapsed;
                 ctrlCommand.btnCommandMacReleaseFn.Visibility = Visibility.Collapsed;
             }
@@ -285,17 +329,46 @@ namespace KLC_Finch
                 btnWiresharkFilter.Visibility = Visibility.Collapsed;
         }
 
-        private void Window_Closing(object sender, CancelEventArgs e) {
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
             if (session == null)
                 return; //Dragablz
 
-            if(App.winCharm != null)
+            if (App.winCharm != null)
             {
                 this.Visibility = Visibility.Collapsed;
                 e.Cancel = true;
-            } else if (App.winStandalone == this)
+            }
+            else if (App.winStandalone == this)
             {
-                if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible)
+                if (session.ModuleForwarding != null && session.ModuleForwarding.IsRunning())
+                {
+                    using (TaskDialog dialog = new TaskDialog())
+                    {
+                        dialog.WindowTitle = "KLC-Finch";
+                        dialog.MainInstruction = "Native RDP is still running";
+                        dialog.MainIcon = TaskDialogIcon.Information;
+                        dialog.CenterParent = true;
+                        dialog.Content = "Are you sure you want to close KLC-Finch and end Native RDP?";
+
+                        TaskDialogButton tdbYes = new TaskDialogButton(ButtonType.Yes);
+                        TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                        dialog.Buttons.Add(tdbYes);
+                        dialog.Buttons.Add(tdbCancel);
+
+                        TaskDialogButton button = dialog.ShowDialog(App.winStandalone);
+                        if (button == tdbYes)
+                        {
+                            session.ModuleForwarding.Close();
+                            session.Close();
+                        }
+                        else
+                        {
+                            e.Cancel = true;
+                        }
+                    }
+                }
+                else if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible)
                 {
                     this.Visibility = Visibility.Collapsed;
                     e.Cancel = true;
@@ -309,21 +382,23 @@ namespace KLC_Finch
             }
         }
 
-        private void btnRCShared_Click(object sender, RoutedEventArgs e) {
+        private void btnRCShared_Click(object sender, RoutedEventArgs e)
+        {
             if (App.winCharm != null || session == null || session.WebsocketB == null || !session.WebsocketB.ControlAgentIsReady())
             {
                 directAction = OnConnect.AlsoRC;
                 directToMode = RC.Shared;
                 return;
             }
-            if(session.ModuleRemoteControl != null)
+            if (session.ModuleRemoteControl != null)
                 session.ModuleRemoteControl.CloseViewer();
 
             session.ModuleRemoteControl = new RemoteControl(session, RC.Shared);
             session.ModuleRemoteControl.Connect();
         }
 
-        private void btnRCPrivate_Click(object sender, RoutedEventArgs e) {
+        private void btnRCPrivate_Click(object sender, RoutedEventArgs e)
+        {
             if (App.winCharm != null || session == null || session.WebsocketB == null || !session.WebsocketB.ControlAgentIsReady())
             {
                 directAction = OnConnect.NoAction;
@@ -347,7 +422,16 @@ namespace KLC_Finch
             session.ModuleRemoteControl.Connect();
         }
 
-        private void btnReconnect_Click(object sender, RoutedEventArgs e) {
+        private void btnRCNativeRDP_Click(object sender, RoutedEventArgs e)
+        {
+            if (session != null && session.WebsocketB.ControlAgentIsReady())
+            {
+                session.WebsocketB.ControlAgentSendRDP_StateRequest();
+            }
+        }
+
+        private void btnReconnect_Click(object sender, RoutedEventArgs e)
+        {
             if (App.winCharm != null)
             {
                 MessageBox.Show("Not yet implemented for Charm.");
@@ -364,10 +448,10 @@ namespace KLC_Finch
             int tempWidth = (int)this.Width;
             int tempHeight = (int)this.Height;
 
-            if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible && session.ModuleRemoteControl.mode == RC.Shared)
-                App.winStandalone = new WindowAlternative(agentID, shortToken, OnConnect.AlsoRC, RC.Shared);
+            if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible && session.ModuleRemoteControl.Mode == RC.Shared)
+                App.winStandalone = new WindowAlternative(agentID, vsa, shortToken, OnConnect.AlsoRC, RC.Shared);
             else
-                App.winStandalone = new WindowAlternative(agentID, shortToken);
+                App.winStandalone = new WindowAlternative(agentID, vsa, shortToken);
             App.winStandalone.Show();
             App.winStandalone.Left = tempLeft;
             App.winStandalone.Top = tempTop;
@@ -378,14 +462,18 @@ namespace KLC_Finch
             this.Close();
         }
 
-        private void ctrlDashboard_Loaded(object sender, RoutedEventArgs e) {
+        private void ctrlDashboard_Loaded(object sender, RoutedEventArgs e)
+        {
             if (session == null || dashLoaded)
                 return;
             dashLoaded = true;
 
-            if (session.agent.RebootLast == default(DateTime)) {
+            if (session.agent.RebootLast == default(DateTime))
+            {
                 ctrlDashboard.txtRebootLast.Text = "Last reboot unknown";
-            } else {
+            }
+            else
+            {
                 ctrlDashboard.txtRebootLast.Text = "Last rebooted ~" + KLC.Util.FuzzyTimeAgo(session.agent.RebootLast);
                 ctrlDashboard.txtRebootLast.ToolTip = session.agent.RebootLast.ToString();
             }
@@ -404,7 +492,8 @@ namespace KLC_Finch
             }
         }
 
-        private void btnWiresharkFilter_Click(object sender, RoutedEventArgs e) {
+        private void btnWiresharkFilter_Click(object sender, RoutedEventArgs e)
+        {
             if (session == null)
                 return;
 
@@ -414,17 +503,20 @@ namespace KLC_Finch
             //Clipboard.SetText(filter); //Apparently WPF clipboard has issues
         }
 
-        private void btnLaunchKLC_Click(object sender, RoutedEventArgs e) {
+        private void btnLaunchKLC_Click(object sender, RoutedEventArgs e)
+        {
             if (session == null)
                 return;
 
-            LibKaseya.KLCCommand command = LibKaseya.KLCCommand.Example(agentID, shortToken);
+            LibKaseya.KLCCommand command = LibKaseya.KLCCommand.Example(vsa, agentID, shortToken);
             command.SetForLiveConnect();
             command.Launch(false, LibKaseya.LaunchExtra.None);
         }
 
-        private void Window_PreviewKeyDown(object sender, KeyEventArgs e) {
-            if(e.Key == Key.F5) {
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.F5)
+            {
                 if (tabFiles.IsSelected)
                     ctrlFiles.btnFilesPathJump_Click(sender, null);
                 else if (tabRegistry.IsSelected)
@@ -438,8 +530,10 @@ namespace KLC_Finch
             }
         }
 
-        private void btnAltSettings_Click(object sender, RoutedEventArgs e) {
-            WindowOptions winOptions = new WindowOptions(ref App.Settings, false) {
+        private void btnAltSettings_Click(object sender, RoutedEventArgs e)
+        {
+            WindowOptions winOptions = new WindowOptions(ref App.Settings, false)
+            {
                 Owner = this
             };
             winOptions.ShowDialog();

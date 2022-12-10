@@ -6,18 +6,20 @@ namespace KLC_Finch {
     public enum DecodeMode { RawYUV, RawY, BitmapRGB }
 
     public interface IRemoteControl {
+        //DecodeMode DecodeMode { get; set; }
         RCstate state { get; set; }
         bool IsPrivate { get; }
-
-        //DecodeMode DecodeMode { get; set; }
+        public bool IsMac { get; set; }
+        public Modules.RemoteControl.Transfer.RCFile Files { get; }
 
         void CaptureNextScreen();
 
-        void ChangeScreen(string screen_id);
+        void ChangeScreen(string screen_id, int clientH, int clientW);
 
         void ChangeTSSession(string session_id);
 
-        void Disconnect(/*string sessionId*/);
+        void Disconnect();
+        void Disconnect(string sessionId);
 
         void Reconnect();
 
@@ -53,7 +55,10 @@ namespace KLC_Finch {
 
         void UpdateScreens(string jsonstr);
 
-        void UploadDrop(string file, Progress<int> progress, bool showExplorer);
+        void FileTransferUpload(string[] files);
+        void FileTransferUploadCancel();
+        void FileTransferDownload();
+        void FileTransferDownloadCancel();
 
         void UpdateScreensHack();
     }

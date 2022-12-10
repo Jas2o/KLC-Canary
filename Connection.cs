@@ -54,29 +54,32 @@ namespace KLC_Finch
             Control = new ConnectionGroupItem(this);
         }
 
-        public void ShowAlternativeWindow()
+        public void ShowAlternativeWindow(System.Windows.Controls.Control origin)
         {
-            if (WinAlternative == null)
+            Window win = (App.winCharm != null ? App.winCharm : App.winStandaloneViewer);
+            if (win == null || WinAlternative == null)
                 return;
 
-            if (WinAlternative.WindowState == System.Windows.WindowState.Minimized)
-                WinAlternative.WindowState = System.Windows.WindowState.Normal;
+            if (WinAlternative.WindowState == WindowState.Minimized)
+                WinAlternative.WindowState = WindowState.Normal;
             WinAlternative.Visibility = Visibility.Visible;
-            WinAlternative.Focus();
+            WinAlternative.Show(); //Necessary if hadn't been drawn yet
+            WinAlternative.Focus(); //Necessary to bring on top
 
-            if (App.winCharm != null)
+            Point point = origin.TransformToAncestor(win).Transform(new Point(0, 0));
+
+            if (win.WindowState == WindowState.Maximized)
             {
-                System.Drawing.Rectangle rect = new System.Drawing.Rectangle((int)App.winCharm.Left, (int)App.winCharm.Top, (int)App.winCharm.Width, (int)App.winCharm.Height);
-                foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens)
-                {
-                    if (screen.Bounds.IntersectsWith(rect))
-                    {
-                        //Placed in center of the screen that has RemoteControl or Charm window.
-                        WinAlternative.Left = screen.Bounds.X + ((screen.Bounds.Width - WinAlternative.Width) / 2);
-                        WinAlternative.Top = screen.Bounds.Y + ((screen.Bounds.Height - WinAlternative.Height) / 2);
-                        break;
-                    }
-                }
+                IntPtr handle = new System.Windows.Interop.WindowInteropHelper(win).Handle;
+                System.Windows.Forms.Screen screen = System.Windows.Forms.Screen.FromHandle(handle);
+
+                WinAlternative.Left = screen.WorkingArea.Left + point.X + 2;
+                WinAlternative.Top = screen.WorkingArea.Top + SystemParameters.CaptionHeight + point.Y + 10;
+            }
+            else
+            {
+                WinAlternative.Left = win.Left + point.X + 8;
+                WinAlternative.Top = win.Top + SystemParameters.CaptionHeight + point.Y + 15;
             }
         }
 
