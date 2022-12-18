@@ -219,10 +219,10 @@ namespace KLC_Finch
 
         public void Disconnect()
         {
-            decoderCT.Cancel();
-
             try
             {
+                decoderCT.Cancel();
+
                 if (decoder != null)
                 {
                     lock (decoderCT)

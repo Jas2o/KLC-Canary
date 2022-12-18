@@ -91,8 +91,8 @@ namespace KLC_Finch
 
             Settings = App.Settings;
             int renderer = App.Settings.Renderer;
-            if (!App.SupportsOpenGL)
-                renderer = 2;
+            //if (!App.SupportsOpenGL) renderer = 2;
+
             switch (renderer)
             {
                 case 0:
@@ -105,6 +105,7 @@ namespace KLC_Finch
 
                 case 2:
                     rcv = new RCvCanvas();
+                    toolShowMouse.Visibility = Visibility.Collapsed;
                     break;
             }
             placeholder.Child = rcv;
