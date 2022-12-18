@@ -169,7 +169,7 @@ namespace KLC_Finch
                 };
                 item.Click += new RoutedEventHandler(ToolTSSession_ItemClicked);
 
-                toolTSSession.DropdownMenu.Items.Add(item);
+                toolTSSession.ContextMenu.Items.Add(item);
                 toolTSSession.Visibility = Visibility.Visible;
 
                 if (currentTSSession == null)
@@ -193,7 +193,7 @@ namespace KLC_Finch
             currentTSSession = null;
 
             Dispatcher.Invoke((Action)delegate {
-                toolTSSession.DropdownMenu.Items.Clear();
+                toolTSSession.ContextMenu.Items.Clear();
             });
         }
         */
@@ -266,10 +266,10 @@ namespace KLC_Finch
             rcv.CameraFromClickedScreen(screen, moveCamera);
 
             Dispatcher.Invoke((Action)delegate {
-                toolScreen.Content = screen.screen_name;
+                lblScreen.Content = screen.screen_name;
                 toolScreen.ToolTip = screen.StringResPos();
 
-                foreach (MenuItem item in toolScreen.DropdownMenu.Items)
+                foreach (MenuItem item in toolScreen.ContextMenu.Items)
                 {
                     item.IsChecked = (item.Header.ToString() == screen.ToString());
                 }
@@ -375,7 +375,7 @@ namespace KLC_Finch
         public void RefreshTSSessions()
         {
             Dispatcher.Invoke((Action)delegate {
-                toolTSSession.DropdownMenu.Items.Clear();
+                toolTSSession.ContextMenu.Items.Clear();
 
                 foreach(TSSession session in rc.state.listTSSession)
                 {
@@ -385,16 +385,16 @@ namespace KLC_Finch
                     };
                     item.Click += new RoutedEventHandler(ToolTSSession_ItemClicked);
 
-                    toolTSSession.DropdownMenu.Items.Add(item);
+                    toolTSSession.ContextMenu.Items.Add(item);
                 }
 
                 if (rc.state.listTSSession.Count > 0)
                 {
-                    toolTSSession.Content = rc.state.currentTSSession.session_name;
+                    lblTSSession.Content = rc.state.currentTSSession.session_name;
                     toolTSSession.Visibility = Visibility.Visible;
                 } else
                 {
-                    toolTSSession.Content = "(Sessions)";
+                    lblTSSession.Content = "(Sessions)";
                     toolTSSession.Visibility = Visibility.Collapsed;
                 }
             });
@@ -571,7 +571,7 @@ namespace KLC_Finch
                 toolMachineNote.Visibility = Visibility.Collapsed;
 
             if (machineShowToolTip > 0 && Enum.IsDefined(typeof(controlDashboard.Badge), machineShowToolTip))
-                toolMachineNote.Content = Enum.GetName(typeof(controlDashboard.Badge), machineShowToolTip);
+                lblMachineNote.Content = Enum.GetName(typeof(controlDashboard.Badge), machineShowToolTip);
 
             toolMachineNoteText.Header = machineNote;
             toolMachineNoteText.Visibility = (machineNote.Length == 0 ? Visibility.Collapsed : Visibility.Visible);
@@ -616,10 +616,10 @@ namespace KLC_Finch
                 rcv.CameraToCurrentScreen();
 
             Dispatcher.Invoke((Action)delegate {
-                toolScreen.Content = rc.state.CurrentScreen.screen_name;
+                lblScreen.Content = rc.state.CurrentScreen.screen_name;
                 toolScreen.ToolTip = rc.state.CurrentScreen.StringResPos();
 
-                foreach (MenuItem item in toolScreen.DropdownMenu.Items)
+                foreach (MenuItem item in toolScreen.ContextMenu.Items)
                 {
                     item.IsChecked = (item.Header.ToString() == rc.state.CurrentScreen.ToString());
                 }
@@ -662,7 +662,7 @@ namespace KLC_Finch
                 return;
 
             Dispatcher.Invoke((Action)delegate {
-                toolScreen.DropdownMenu.Items.Clear();
+                toolScreen.ContextMenu.Items.Clear();
 
                 foreach (RCScreen screen in rc.state.ListScreen)
                 {
@@ -673,14 +673,14 @@ namespace KLC_Finch
                     };
                     item.Click += new RoutedEventHandler(ToolScreen_ItemClicked);
 
-                    toolScreen.DropdownMenu.Items.Add(item);
+                    toolScreen.ContextMenu.Items.Add(item);
 
                     //Private and Mac seem to bug out if you change screens, cause there's only one screen
                     toolScreen.Opacity = (rc.state.ListScreen.Count > 1 ? 1.0 : 0.6);
 
                     if (screen == rc.state.CurrentScreen)
                     {
-                        toolScreen.Content = rc.state.CurrentScreen.screen_name;
+                        lblScreen.Content = rc.state.CurrentScreen.screen_name;
                         toolScreen.ToolTip = rc.state.CurrentScreen.StringResPos();
                     }
                 }
@@ -1145,7 +1145,15 @@ namespace KLC_Finch
                 else
                     winScreens.Show();
             }
-            //Otherwise the old menu is shown
+
+            if (!winScreens.IsVisible)
+            {
+                //Otherwise the old menu is shown
+                (sender as Button).ContextMenu.IsEnabled = true;
+                (sender as Button).ContextMenu.PlacementTarget = (sender as Button);
+                (sender as Button).ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+                (sender as Button).ContextMenu.IsOpen = true;
+            }
         }
 
         private void ToolScreen_ItemClicked(object sender, RoutedEventArgs e)
@@ -1160,9 +1168,9 @@ namespace KLC_Finch
             if (rc.state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
 
-            toolScreen.Content = rc.state.CurrentScreen.screen_name;
+            lblScreen.Content = rc.state.CurrentScreen.screen_name;
             toolScreen.ToolTip = rc.state.CurrentScreen.StringResPos();
-            foreach (MenuItem item in toolScreen.DropdownMenu.Items)
+            foreach (MenuItem item in toolScreen.ContextMenu.Items)
             {
                 item.IsChecked = (item == source);
             }
@@ -1226,8 +1234,15 @@ namespace KLC_Finch
             if (rc == null)
                 return;
 
-            toolShowMouse.IsChecked = !toolShowMouse.IsChecked;
-            rc.ShowCursor(toolShowMouse.IsChecked);
+            if(toolShowMouse.Opacity == 0.5)
+            {
+                toolShowMouse.Opacity = 1;
+                rc.ShowCursor(true);
+            } else
+            {
+                toolShowMouse.Opacity = 0.5;
+                rc.ShowCursor(false);
+            }
         }
 
         private void ToolToggleControl_Click(object sender, RoutedEventArgs e)
@@ -1255,7 +1270,7 @@ namespace KLC_Finch
 
             toolTSSession.Content = rc.state.currentTSSession.session_name;
 
-            foreach (MenuItem item in toolTSSession.DropdownMenu.Items)
+            foreach (MenuItem item in toolTSSession.ContextMenu.Items)
             {
                 item.IsChecked = (item == source);
             }
@@ -1680,12 +1695,14 @@ namespace KLC_Finch
         private void ToolFileTransfer_Click(object sender, RoutedEventArgs e)
         {
             ShowFileTransfer();
-            /*
-            if(rc.Files.activeUpload != null)
-                winRCFileTransfer.GoToTabUpload();
-            else
-                winRCFileTransfer.GoToTabDownload();
-            */
+        }
+
+        private void toolButtonContext(object sender, RoutedEventArgs e)
+        {
+            (sender as Button).ContextMenu.IsEnabled = true;
+            (sender as Button).ContextMenu.PlacementTarget = (sender as Button);
+            (sender as Button).ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            (sender as Button).ContextMenu.IsOpen = true;
         }
 
         /*

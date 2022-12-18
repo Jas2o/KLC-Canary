@@ -2,6 +2,7 @@
 using Ookii.Dialogs.Wpf;
 using System;
 using System.ComponentModel;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -91,9 +92,17 @@ namespace KLC_Finch
                 }
             }
 
+            ProgressDialog dialog = new ProgressDialog();
+            dialog.WindowTitle = "KLC-Finch";
+            dialog.Description = "Waiting for VSA...";
+            dialog.ShowCancelButton = false;
+            dialog.ProgressBarStyle = ProgressBarStyle.MarqueeProgressBar;
+            dialog.Show();
+
             //WindowCharm.HasConnected callback = (directToRC ? new WindowCharm.HasConnected(ConnectDirect) : new WindowCharm.HasConnected(ConnectNotDirect));
             StatusCallback callback = new StatusCallback(StatusUpdate);
             conn = ConnectionManager.AddReal(agentID, vsa, shortToken, callback, this);
+            dialog.Dispose();
             if (conn == null || conn.LCSession == null)
                 return;
             session = conn.LCSession;
@@ -122,7 +131,7 @@ namespace KLC_Finch
                 session = null;
                 return;
             }
-            this.Title = session.agent.Name + " - KLC-Finch";
+            this.Title = session.agent.Name + " - " + vsa + " - KLC-Finch";
             btnRCOneClick.IsEnabled = session.agent.OneClickAccess;
 
             WindowUtilities.ActivateWindow(this);
@@ -165,9 +174,9 @@ namespace KLC_Finch
         {
             if (status == EPStatus.Connected && directAction != OnConnect.NoAction)
             {
-                if (directToMode == RC.NativeRDP)
+                if (directToMode == RC.NativeRDP || directToMode == RC.Private || directToMode == RC.OneClick)
                 {
-                    session.WebsocketB.ControlAgentSendRDP_StateRequest();
+                    session.WebsocketB.ControlAgentSendRDP_StateRequest(directToMode);
                     return;
                 }
                 else
@@ -418,6 +427,8 @@ namespace KLC_Finch
             if (session.ModuleRemoteControl != null)
                 session.ModuleRemoteControl.CloseViewer();
 
+            session.WebsocketB.ControlAgentSendRDP_StateRequest(RC.OneClick);
+
             session.ModuleRemoteControl = new RemoteControl(session, RC.OneClick);
             session.ModuleRemoteControl.Connect();
         }
@@ -426,7 +437,7 @@ namespace KLC_Finch
         {
             if (session != null && session.WebsocketB.ControlAgentIsReady())
             {
-                session.WebsocketB.ControlAgentSendRDP_StateRequest();
+                session.WebsocketB.ControlAgentSendRDP_StateRequest(RC.NativeRDP);
             }
         }
 

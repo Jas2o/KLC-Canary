@@ -81,7 +81,11 @@ namespace KLC
                     }
                     else if (message.Contains("RDP_StateSet"))
                     {
-                        Session.ModuleForwarding = new Forwarding(Session, Session.agent.NetIPAddress, 3389);
+                        if (StateRequestLastMode == RC.NativeRDP)
+                        {
+                            StateRequestLastMode = RC.Private;
+                            Session.ModuleForwarding = new Forwarding(Session, Session.agent.NetIPAddress, 3389);
+                        }
                     }
                     else
                         App.ShowUnhandledExceptionFromSrc(message, "Websocket B Control Agent");
@@ -346,7 +350,7 @@ namespace KLC
                     sessionType = "1-Click";
                     break;
             }
-            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.Auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + sessionType + "\"},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
+            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.Auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"DisablePermanentOption\": null,\"DisallowFileTransfers\": 0,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":0,\"RecordSession\":0,\"RemoteControlNotify\":1,\"RequireRcNote\":0,\"RequiteFTPNote\":0,\"TerminateNotify\":0,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + sessionType + "\", \"startSessionRecording\": false},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
 
             if (ServerBsocketControlAgent == null)
                 //throw new Exception("Agent offline?");
@@ -444,8 +448,11 @@ namespace KLC
                 throw new Exception("Agent offline?");
         }
 
-        public void ControlAgentSendRDP_StateRequest()
+        private RC StateRequestLastMode;
+        public void ControlAgentSendRDP_StateRequest(RC mode)
         {
+            StateRequestLastMode = mode;
+
             JObject jMain = new JObject
             {
                 ["type"] = "RDP_StateRequest",

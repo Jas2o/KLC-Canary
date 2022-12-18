@@ -1043,8 +1043,12 @@ namespace KLC_Finch {
         }
 
         private void toolViewRCLogs_Click(object sender, RoutedEventArgs e) {
-            string logs = App.alternative.session.agent.GetAgentRemoteControlLogs();
-            MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
+            try
+            {
+                string logs = App.alternative.session.agent.GetAgentRemoteControlLogs();
+                MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
+            } catch(Exception) {
+            }
         }
 
         private void toolPanZoom_Click(object sender, RoutedEventArgs e) {
@@ -1115,15 +1119,15 @@ namespace KLC_Finch {
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
                 bool doUpload = false;
-                bool showExplorer = false;
+                //bool showExplorer = false;
                 using (TaskDialog dialog = new TaskDialog()) {
                     dialog.WindowTitle = "KLC-Finch: Upload File";
                     dialog.MainInstruction = "Upload dropped file to KRCTransferFiles?";
                     dialog.MainIcon = TaskDialogIcon.Information;
                     dialog.CenterParent = true;
                     dialog.Content = files[0];
-                    dialog.VerificationText = "Open file explorer when complete";
-                    dialog.IsVerificationChecked = true;
+                    //dialog.VerificationText = "Open file explorer when complete";
+                    //dialog.IsVerificationChecked = true;
 
                     TaskDialogButton tdbYes = new TaskDialogButton(ButtonType.Yes);
                     TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
@@ -1132,7 +1136,7 @@ namespace KLC_Finch {
 
                     TaskDialogButton button = dialog.ShowDialog(this);
                     doUpload = (button == tdbYes);
-                    showExplorer = dialog.IsVerificationChecked;
+                    //showExplorer = dialog.IsVerificationChecked;
                 }
 
                 if (doUpload) {
@@ -1151,7 +1155,7 @@ namespace KLC_Finch {
                     progressDialog.DoWork += new DoWorkEventHandler(ProgressDialog_DoWork);
                     progressDialog.Show();
 
-                    rc.UploadDrop(files[0], progress, showExplorer);
+                    rc.UploadDrop(files[0], progress);
                 }
             }
         }
@@ -1187,11 +1191,17 @@ namespace KLC_Finch {
                 try {
                     KeycodeV3 keykaseya = KeycodeV3.Dictionary[e2.KeyCode];
 
-                    if (endpointOS == Agent.OSProfile.Mac && Settings.MacSwapCtrlWin) {
-                        if (KeycodeV3.ModifiersControl.Contains(e2.KeyCode))
-                            keykaseya = keywin;
-                        else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
-                            keykaseya = keyctrl;
+                    if (endpointOS == Agent.OSProfile.Mac)
+                    {
+                        if (Settings.MacSafeKeys && !keykaseya.IsMacSafe) return;
+
+                        if (Settings.MacSwapCtrlWin)
+                        {
+                            if (KeycodeV3.ModifiersControl.Contains(e2.KeyCode))
+                                keykaseya = keywin;
+                            else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
+                                keykaseya = keyctrl;
+                        }
                     }
 
                     if (keykaseya == null)
@@ -1279,11 +1289,16 @@ namespace KLC_Finch {
                     if (keykaseya == null)
                         throw new KeyNotFoundException(e2.KeyCode.ToString());
 
-                    if (endpointOS == Agent.OSProfile.Mac && Settings.MacSwapCtrlWin) {
-                        if (KeycodeV3.ModifiersControl.Contains(e2.KeyCode))
-                            keykaseya = keywin;
-                        else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
-                            keykaseya = keyctrl;
+                    if (endpointOS == Agent.OSProfile.Mac) {
+                        if (Settings.MacSafeKeys && !keykaseya.IsMacSafe) return false;
+
+                        if (Settings.MacSwapCtrlWin)
+                        {
+                            if (KeycodeV3.ModifiersControl.Contains(e2.KeyCode))
+                                keykaseya = keywin;
+                            else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
+                                keykaseya = keyctrl;
+                        }
                     }
 
                     if (e2.KeyCode == System.Windows.Forms.Keys.LWin || e2.KeyCode == System.Windows.Forms.Keys.RWin)

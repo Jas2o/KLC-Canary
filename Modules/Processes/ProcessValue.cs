@@ -7,7 +7,7 @@ namespace KLC_Finch.Modules {
         public string DisplayName { get; private set; }
         public string UserName { get; private set; }
         public ulong Memory { get; private set; } //Normally string
-        public int CPU { get; private set; } //Normally string
+        public int CPU { get; private set; } //Normally string, is %
         public int GpuUtilization { get; private set; } //Normally string, is %
         public ulong DiskUtilization { get; private set; } //Normally string, is MB/s
         public string PType { get; private set; } //Background, Windows (no Foreground?)
