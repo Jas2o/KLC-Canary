@@ -1724,7 +1724,7 @@ namespace KLC_Finch
             QualityCallback callback = new QualityCallback(QualityUpdate);
             WindowStreamQuality winStreamQuality = new WindowStreamQuality(callback, rc.state.QualityDownscale, rc.state.QualityWidth, rc.state.QualityHeight)
             {
-                Owner = this
+                Owner = Window.GetWindow(this)
             };
             winStreamQuality.ShowDialog();
         }
@@ -1732,10 +1732,10 @@ namespace KLC_Finch
         public delegate void QualityCallback(int downscale, int width, int height);
         public void QualityUpdate(int downscale, int width, int height)
         {
-            state.QualityDownscale = downscale;
-            state.QualityWidth = width;
-            state.QualityHeight = height;
-            ChangeScreen(state.CurrentScreen.screen_id);
+            rc.state.QualityDownscale = downscale;
+            rc.state.QualityWidth = width;
+            rc.state.QualityHeight = height;
+            ChangeScreen(rc.state.CurrentScreen.screen_id);
         }
 
         /*

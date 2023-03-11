@@ -132,6 +132,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="Modules\RemoteControl\WindowStreamQuality.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -154,6 +157,11 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Modules\RemoteControl\WindowStreamQuality.xaml">
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
   <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaAuth\LibKaseyaAuth.projitems" Label="Shared" />
