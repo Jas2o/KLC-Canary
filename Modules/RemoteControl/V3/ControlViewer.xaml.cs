@@ -9,8 +9,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net.NetworkInformation;
-using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Timers;
 using System.Windows;
@@ -262,7 +260,7 @@ namespace KLC_Finch
         {
             rc.state.previousScreen = rc.state.CurrentScreen;
             rc.state.CurrentScreen = screen;
-            rc.ChangeScreen(rc.state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
+            ChangeScreen(rc.state.CurrentScreen.screen_id);
 
             rcv.CameraFromClickedScreen(screen, moveCamera);
 
@@ -611,7 +609,7 @@ namespace KLC_Finch
         {
             rc.state.previousScreen = rc.state.CurrentScreen;
             rc.state.CurrentScreen = rc.state.ListScreen.First(x => x.screen_id == id);
-            rc.ChangeScreen(rc.state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
+            ChangeScreen(rc.state.CurrentScreen.screen_id);
 
             if (rc.state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
@@ -1164,7 +1162,7 @@ namespace KLC_Finch
 
             rc.state.previousScreen = rc.state.CurrentScreen;
             rc.state.CurrentScreen = rc.state.ListScreen.First(x => x.screen_name == screen_selected[0]);
-            rc.ChangeScreen(rc.state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
+            ChangeScreen(rc.state.CurrentScreen.screen_id);
 
             if (rc.state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
@@ -1704,6 +1702,40 @@ namespace KLC_Finch
             (sender as Button).ContextMenu.PlacementTarget = (sender as Button);
             (sender as Button).ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
             (sender as Button).ContextMenu.IsOpen = true;
+        }
+
+        private void ChangeScreen(string screen_id)
+        {
+            if (rc == null || rc.state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            if (rc.state.QualityWidth == 0 || rc.state.QualityHeight == 0)
+            {
+                rc.ChangeScreen(screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight, rc.state.QualityDownscale);
+            }
+            else
+            {
+                rc.ChangeScreen(screen_id, rc.state.QualityWidth, rc.state.QualityHeight, rc.state.QualityDownscale);
+            }
+        }
+
+        private void ToolStreamQuality_Click(object sender, RoutedEventArgs e)
+        {
+            QualityCallback callback = new QualityCallback(QualityUpdate);
+            WindowStreamQuality winStreamQuality = new WindowStreamQuality(callback, rc.state.QualityDownscale, rc.state.QualityWidth, rc.state.QualityHeight)
+            {
+                Owner = this
+            };
+            winStreamQuality.ShowDialog();
+        }
+
+        public delegate void QualityCallback(int downscale, int width, int height);
+        public void QualityUpdate(int downscale, int width, int height)
+        {
+            state.QualityDownscale = downscale;
+            state.QualityWidth = width;
+            state.QualityHeight = height;
+            ChangeScreen(state.CurrentScreen.screen_id);
         }
 
         /*

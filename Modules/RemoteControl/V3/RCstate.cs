@@ -61,6 +61,10 @@ namespace KLC_Finch
         public readonly FPSCounter fpsCounter;
         public double fpsLast;
 
+        public int QualityDownscale = 1;
+        public int QualityWidth = 0;
+        public int QualityHeight = 0;
+
         public RCstate()
         {
             ListScreen = new List<RCScreen>();
