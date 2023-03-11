@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using static LibKaseya.Enums;
 
 namespace KLC_Finch {
     /// <summary>
@@ -24,43 +25,14 @@ namespace KLC_Finch {
         private Dashboard moduleDashboard;
         private StaticImage moduleStaticImage;
 
-        public enum Badge {
-            Blank,
-            Note,
-            FlagRed,
-            FlagBlue,
-            FlagGreen,
-            FlagYellow,
-            Recycle,
-            Clock,
-            Location,
-            StarYellow,
-            StarGreen,
-            StarBlue,
-            StarRed,
-            UsePrivate,
-            MagnifyGlass,
-            PhoneOrange,
-            PhoneBlue,
-            Documentation,
-            FilingCabinetBlue,
-            UnknownArrowGreen,
-            Envelope,
-            PencilOrange,
-            PencilBlue,
-            SpeechBubble,
-            PersonYellow
-        };
-
         public controlDashboard() {
             InitializeComponent();
         }
 
-        public void UpdateDisplayData() {
-            KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
+        public void UpdateDisplayData(KLC.LiveConnectSession session) {
+            //KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
 
             txtUtilisationRAM.Text = "RAM: " + session.agent.RAMinGB + " GB";
-            DisplayRCNotify(session.RCNotify);
             DisplayRCNotify(session.RCNotify);
             DisplayMachineNote(session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
         }
@@ -114,23 +86,7 @@ namespace KLC_Finch {
         }
 
         public void DisplayRCNotify(LibKaseya.Enums.NotifyApproval policy) {
-            switch(policy) {
-                case LibKaseya.Enums.NotifyApproval.None:
-                    txtRCNotify.Visibility = Visibility.Collapsed;
-                    break;
-                case LibKaseya.Enums.NotifyApproval.NotifyOnly:
-                    txtRCNotify.Text = "Notification prompt only.";
-                    break;
-                case LibKaseya.Enums.NotifyApproval.ApproveAllowIfNoUser:
-                    txtRCNotify.Text = "Approve prompt - allow if no one logged in.";
-                    break;
-                case LibKaseya.Enums.NotifyApproval.ApproveDenyIfNoUser:
-                    txtRCNotify.Text = "Approve prompt - denied if no one logged in.";
-                    break;
-                default:
-                    txtRCNotify.Text = "Unknown RC notify policy: " + policy;
-                    break;
-            }
+            txtRCNotify.Text = LibKaseyaLiveConnect.Text.RCNotify(policy);
         }
 
         //session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink
@@ -145,9 +101,9 @@ namespace KLC_Finch {
 
             if (machineShowToolTip > 0) {
                 if (Enum.IsDefined(typeof(Badge), machineShowToolTip))
-                    txtSpecialInstructions.Text += " (" + Enum.GetName(typeof(Badge), machineShowToolTip) + ")";
+                    txtSpecialInstructions.Text = "Special Instructions for this Machine (" + Enum.GetName(typeof(Badge), machineShowToolTip) + ")";
                 else
-                    txtSpecialInstructions.Text += " (" + machineShowToolTip + ")";
+                    txtSpecialInstructions.Text = "Special Instructions for this Machine (" + machineShowToolTip + ")";
             }
 
             if (machineNoteLink != null) {

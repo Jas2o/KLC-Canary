@@ -569,8 +569,8 @@ namespace KLC_Finch
             else
                 toolMachineNote.Visibility = Visibility.Collapsed;
 
-            if (machineShowToolTip > 0 && Enum.IsDefined(typeof(controlDashboard.Badge), machineShowToolTip))
-                lblMachineNote.Content = Enum.GetName(typeof(controlDashboard.Badge), machineShowToolTip);
+            if (machineShowToolTip > 0 && Enum.IsDefined(typeof(Badge), machineShowToolTip))
+                lblMachineNote.Content = Enum.GetName(typeof(Badge), machineShowToolTip);
 
             toolMachineNoteText.Header = machineNote;
             toolMachineNoteText.Visibility = (machineNote.Length == 0 ? Visibility.Collapsed : Visibility.Visible);

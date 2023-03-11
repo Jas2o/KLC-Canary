@@ -4,19 +4,14 @@ using Ookii.Dialogs.Wpf;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using static LibKaseya.Enums;
+using static OpenTK.Windowing.GraphicsLibraryFramework.GLFWCallbacks;
 
 namespace KLC_Finch
 {
@@ -114,16 +109,27 @@ namespace KLC_Finch
             });
         }
 
-        /*
-        public delegate void StatusCallback(EPStatus status);
-        public void StatusUpdate(EPStatus status)
-        {
-            Console.WriteLine(status.ToString());
-        }
-        */
+        public delegate void StatusCallback();
 
-        public delegate void HasConnected();
-       
+        public void StatusUpdate()
+        {
+            Application.Current.Dispatcher.Invoke((Action)delegate
+            {
+                if (ConnectionManager.Active.LCSession == null)
+                {
+                    txtStatus.Text = "NULL";
+                    borderStatus.Background = new SolidColorBrush(Colors.DimGray);
+                    borderStatus.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    txtStatus.Text = ConnectionManager.Active.LCSession.GetStatusText();
+                    borderStatus.Background = ConnectionManager.Active.LCSession.GetStatusColor();
+                    borderStatus.Visibility = ConnectionManager.Active.LCSession.GetStatusVisibility();
+                }
+            });
+        }
+
         public void ConnectDirect()
         {
             //session.ModuleRemoteControl = new RemoteControl(session, directToMode);
@@ -150,6 +156,8 @@ namespace KLC_Finch
                 else
                     conn.Control.btnAgent.FontWeight = conn.Control.btnRCShared.FontWeight = conn.Control.btnRCPrivate.FontWeight = FontWeights.Thin;
             }
+
+            UpdateLessDashboard();
         }
 
         private void ConnectUpdateUI()
@@ -159,7 +167,6 @@ namespace KLC_Finch
 
             if (ConnectionManager.Active.IsReal)
             {
-                btnRCAdd.Content = ConnectionManager.Active.LCSession.agent.Name;
                 btnAlt.IsEnabled = true;
 
                 //if(ConnectionManager.Active.RC != null)
@@ -169,11 +176,12 @@ namespace KLC_Finch
             }
             else
             {
-                btnRCAdd.Content = ConnectionManager.Active.Label;
                 btnAlt.IsEnabled = false;
 
                 this.Title = "KLC-Finch+ " + ConnectionManager.Active.Label;
             }
+
+            UpdateLessDashboard();
 
             btnRCAdd.IsEnabled = true;
             btnRCClose.IsEnabled = (ConnectionManager.Active.RC != null && ConnectionManager.Active.RC.state.connectionStatus == ConnectionStatus.Connected);
@@ -185,7 +193,7 @@ namespace KLC_Finch
             if (ConnectionManager.Active == null || !ConnectionManager.Active.IsReal)
                 return;
 
-            ConnectionManager.Active.ShowAlternativeWindow(btnAlt);
+            ConnectionManager.Active.ShowAlternativeWindow(btnAlt, 100);
         }
 
         private void BtnRCAdd_Click(object sender, RoutedEventArgs e)
@@ -193,25 +201,35 @@ namespace KLC_Finch
             if(ConnectionManager.Active == null)
                 return;
 
-            ConnectionManager.Active.Control.btnRCShared.Visibility = Visibility.Visible;
-            tabRC.IsSelected = true; //OpenGL gets mad if it's not visible
-
             if (ConnectionManager.Active.IsReal)
             {
                 if (ConnectionManager.Active.LCSession.WebsocketB == null || !ConnectionManager.Active.LCSession.WebsocketB.ControlAgentIsReady())
                     return;
-                if (ConnectionManager.Active.RC != null && ConnectionManager.Active.RC.state.connectionStatus != ConnectionStatus.Disconnected)
-                    return;
+                if (ConnectionManager.Active.RC != null)
+                {
+                    switch(ConnectionManager.Active.RC.state.connectionStatus)
+                    {
+                        case ConnectionStatus.FirstConnectionAttempt:
+                        case ConnectionStatus.Disconnected:
+                            break;
+
+                        default:
+                            return;
+                    }
+                }
+                tabRC.IsSelected = true;
                 ConnectionManager.Active.LCSession.ModuleRemoteControl = new RemoteControl(ConnectionManager.Active.LCSession, RC.Shared);
                 ConnectionManager.Active.LCSession.ModuleRemoteControl.ConnectV2(this);
             } else
             {
+                tabRC.IsSelected = true;
                 RemoteControlTest rcTest = (RemoteControlTest)ConnectionManager.Active.RC;
                 if(!rcTest.LoopIsRunning())
                     rcTest.LoopStart(controlViewer);
                 //controlViewer.Start(ConnectionManager.Active.RC.state, LibKaseya.Agent.OSProfile.Other);
             }
 
+            ConnectionManager.Active.Control.btnRCShared.Visibility = Visibility.Visible;
             btnRCClose.IsEnabled = true;
         }
 
@@ -378,7 +396,7 @@ namespace KLC_Finch
             }
         }
 
-        private void AddReal(string vsa, string shortToken, string agentID)
+        public void AddReal(string vsa, string shortToken, string agentID)
         {
             try
             {
@@ -390,7 +408,8 @@ namespace KLC_Finch
                     ////WindowAlternative.StatusCallback callback = null;
                     ////conn = ConnectionManager.AddReal(val, Kaseya.Token, /*this,*/ callback);
 
-                    WindowAlternative winAlt = new(agentID, vsa, shortToken);
+                    StatusCallback charmCallback = new StatusCallback(StatusUpdate);
+                    WindowAlternative winAlt = new(agentID, vsa, shortToken, OnConnect.NoAction, RC.Shared, charmCallback);
                     if (winAlt.conn == null)
                         return;
                     AddConnectionToUI(winAlt.conn, winAlt.conn.LCSession.agent.MachineGroupReverse);
@@ -534,6 +553,8 @@ namespace KLC_Finch
             {
                 cmbBookmarks.Items.Add(bm);
             }
+
+            UpdateLessDashboard();
         }
 
         private void BtnTestThing_Click(object sender, RoutedEventArgs e)
@@ -584,6 +605,92 @@ namespace KLC_Finch
         private void Window_StateChanged(object sender, EventArgs e)
         {
             controlViewer.WinStateChanged(sender, e, WindowState);
+        }
+
+        private void UpdateLessDashboard()
+        {
+            if (ConnectionManager.Active == null)
+            {
+                txtMachineName.Text = "No machine selected.";
+                txtRebootLast.Text = "Use the controls under Bookmarks to start a session.";
+                txtRebootLast.ToolTip = null;
+                txtRCNotify.Text = LibKaseyaLiveConnect.Text.RCNotify(NotifyApproval.None);
+                DisplayMachineNote(0, "");
+
+                return;
+            }
+
+            if (ConnectionManager.Active.IsReal)
+            {
+                if (ConnectionManager.Active.LCSession == null)
+                    return;
+
+                txtMachineName.Text = ConnectionManager.Active.LCSession.agent.Name;
+
+                if (ConnectionManager.Active.LCSession.agent.RebootLast == default(DateTime))
+                {
+                    txtRebootLast.Text = "Last reboot unknown";
+                    txtRebootLast.ToolTip = null;
+                }
+                else
+                {
+                    txtRebootLast.Text = "Last rebooted ~" + KLC.Util.FuzzyTimeAgo(ConnectionManager.Active.LCSession.agent.RebootLast);
+                    txtRebootLast.ToolTip = ConnectionManager.Active.LCSession.agent.RebootLast.ToString();
+                }
+
+                //txtUtilisationRAM.Text = "RAM: " + ConnectionManager.Active.LCSession.agent.RAMinGB + " GB";
+                txtRCNotify.Text = LibKaseyaLiveConnect.Text.RCNotify(ConnectionManager.Active.LCSession.RCNotify);
+                DisplayMachineNote(ConnectionManager.Active.LCSession.agent.MachineShowToolTip, ConnectionManager.Active.LCSession.agent.MachineNote, ConnectionManager.Active.LCSession.agent.MachineNoteLink);
+            } else {
+                txtMachineName.Text = ConnectionManager.Active.Label;
+                txtRebootLast.Text = "N/A";
+                txtRebootLast.ToolTip = null;
+                txtRCNotify.Text = LibKaseyaLiveConnect.Text.RCNotify(NotifyApproval.None);
+                DisplayMachineNote(1, "Test Note");
+            }
+
+            StatusUpdate();
+        }
+
+        public void DisplayMachineNote(int machineShowToolTip, string machineNote, string machineNoteLink = null)
+        {
+            //Copied from controlDashboard
+
+            if (machineNote == null)
+                return;
+
+            if (machineShowToolTip == 0 && machineNote.Length == 0)
+            {
+                txtSpecialInstructions.Visibility = txtMachineNote.Visibility = Visibility.Collapsed;
+                return;
+            }
+            txtSpecialInstructions.Visibility = txtMachineNote.Visibility = Visibility.Visible;
+
+            if (machineShowToolTip > 0)
+            {
+                if (Enum.IsDefined(typeof(Badge), machineShowToolTip))
+                    txtSpecialInstructions.Text = "Special Instructions for this Machine (" + Enum.GetName(typeof(Badge), machineShowToolTip) + ")";
+                else
+                    txtSpecialInstructions.Text = "Special Instructions for this Machine (" + machineShowToolTip + ")";
+            }
+
+            if (machineNoteLink != null)
+            {
+                txtMachineNoteLink.NavigateUri = new Uri(machineNoteLink);
+                txtMachineNoteLinkText.Text = machineNoteLink;
+                txtMachineNoteText.Text = machineNote;
+            }
+            else
+            {
+                txtMachineNoteLinkText.Text = string.Empty;
+                txtMachineNoteText.Text = machineNote;
+            }
+
+        }
+
+        private void txtMachineNoteLink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo(e.Uri.ToString()) { UseShellExecute = true });
         }
     }
 }

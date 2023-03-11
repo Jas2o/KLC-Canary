@@ -29,7 +29,8 @@ namespace KLC_Finch
         private OnConnect directAction;
         private RC directToMode;
         private bool dashLoaded;
-        private uint connectionAttempt;
+        //private uint connectionAttempt;
+        private WindowCharm.StatusCallback charmCallback;
 
         public WindowAlternative()
         {
@@ -44,7 +45,7 @@ namespace KLC_Finch
         /// <param name="shortToken"></param>
         /// <param name="directToRemoteControl"></param>
         /// <param name="directToMode"></param>
-        public WindowAlternative(string agentID, string vsa, string shortToken, OnConnect directAction = OnConnect.NoAction, RC directToMode = RC.Shared)
+        public WindowAlternative(string agentID, string vsa, string shortToken, OnConnect directAction = OnConnect.NoAction, RC directToMode = RC.Shared, WindowCharm.StatusCallback charmCallback = null)
         {
             InitializeComponent();
 
@@ -58,7 +59,6 @@ namespace KLC_Finch
             this.directAction = directAction;
             this.directToMode = directToMode;
             socketActive = true;
-            connectionAttempt = 0;
 
             //--
 
@@ -100,12 +100,14 @@ namespace KLC_Finch
             dialog.Show();
 
             //WindowCharm.HasConnected callback = (directToRC ? new WindowCharm.HasConnected(ConnectDirect) : new WindowCharm.HasConnected(ConnectNotDirect));
+            this.charmCallback = charmCallback;
             StatusCallback callback = new StatusCallback(StatusUpdate);
             conn = ConnectionManager.AddReal(agentID, vsa, shortToken, callback, this);
             dialog.Dispose();
             if (conn == null || conn.LCSession == null)
                 return;
             session = conn.LCSession;
+            session.StatusConnectionAttempt = 0;
             this.Title = session.agent.Name + " - " + vsa + " - KLC-Finch";
             btnRCOneClick.IsEnabled = session.agent.OneClickAccess;
 
@@ -172,6 +174,10 @@ namespace KLC_Finch
         public delegate void StatusCallback(EPStatus status);
         public void StatusUpdate(EPStatus status)
         {
+            session.Status = status;
+            if (charmCallback != null)
+                charmCallback.Invoke();
+
             if (status == EPStatus.Connected && directAction != OnConnect.NoAction)
             {
                 if (directToMode == RC.NativeRDP || directToMode == RC.Private || directToMode == RC.OneClick)
@@ -185,31 +191,21 @@ namespace KLC_Finch
 
             Application.Current.Dispatcher.Invoke((Action)delegate
             {
+                txtStatus.Text = session.GetStatusText();
+                borderStatus.Background = session.GetStatusColor();
+                borderStatus.Visibility = session.GetStatusVisibility();
+
                 switch (status)
                 {
                     case EPStatus.AttemptingToConnect:
                     case EPStatus.PeerOffline:
                     case EPStatus.PeerToPeerFailure:
-                        connectionAttempt++;
-                        if (directAction != OnConnect.NoAction)
-                            txtStatus.Text = "Attempt " + connectionAttempt + " to connect and open Remote Control... ";
-                        else
-                            txtStatus.Text = "Attempt " + connectionAttempt + " to connect...";
-
-                        if (connectionAttempt % 2 == 0)
-                            borderStatus.Background = brushBlue1;
-                        else
-                            borderStatus.Background = brushBlue2;
-                        borderStatus.Visibility = Visibility.Visible;
-
-                        if (connectionAttempt > 99)
+                        session.StatusConnectionAttempt++;
+                        if (session.StatusConnectionAttempt > 99)
                             session.Close();
-
                         break;
+
                     case EPStatus.Connected:
-                        txtStatus.Text = "Connected";
-                        borderStatus.Background = new SolidColorBrush(Colors.Green);
-                        borderStatus.Visibility = Visibility.Collapsed;
                         ConnectUpdateUI();
                         if (directAction != OnConnect.NoAction)
                             session.ModuleRemoteControl.Connect();
@@ -218,56 +214,17 @@ namespace KLC_Finch
                         break;
 
                     case EPStatus.UnavailableWsA:
-                        txtStatus.Text = "Endpoint Unavailable (Web Socket A)";
-                        borderStatus.Background = new SolidColorBrush(Colors.DarkOrange);
-                        borderStatus.Visibility = Visibility.Visible;
-                        break;
-
                     case EPStatus.DisconnectedWsB:
-                        txtStatus.Text = "Endpoint Disconnected (Web Socket B)";
-                        borderStatus.Background = new SolidColorBrush(Colors.Maroon);
-                        borderStatus.Visibility = Visibility.Visible;
-                        break;
-
                     case EPStatus.DisconnectedManual:
-                        txtStatus.Text = "Manual Disconnection";
-                        borderStatus.Background = new SolidColorBrush(Colors.DimGray);
-                        borderStatus.Visibility = Visibility.Visible;
-                        break;
-
                     case EPStatus.UnableToStartSession:
-                        txtStatus.Text = "Unable to start session with endpoint.";
-                        borderStatus.Background = new SolidColorBrush(Colors.DimGray);
-                        borderStatus.Visibility = Visibility.Visible;
-                        break;
-
                     case EPStatus.AuthFailed:
-                        txtStatus.Text = "Authentication failure or cannot communicate with VSA.";
-                        borderStatus.Background = new SolidColorBrush(Colors.DimGray);
-                        borderStatus.Visibility = Visibility.Visible;
-                        break;
-
                     case EPStatus.NativeRDPStarting:
-                        txtStatus.Text = "Native RDP - Starting TCP Tunneling";
-                        borderStatus.Background = new SolidColorBrush(Colors.Green);
-                        borderStatus.Visibility = Visibility.Visible;
-                        break;
                     case EPStatus.NativeRDPActive:
-                        txtStatus.Text = "Native RDP - TCP Tunneling Active";
-                        borderStatus.Background = new SolidColorBrush(Colors.Green);
-                        borderStatus.Visibility = Visibility.Visible;
-                        break;
                     case EPStatus.NativeRDPEnded:
-                        txtStatus.Text = "Native RDP - Ended";
-                        borderStatus.Background = new SolidColorBrush(Colors.Green);
-                        borderStatus.Visibility = Visibility.Collapsed;
                         break;
 
                     default:
                         Console.WriteLine("Status unknown: " + status);
-                        txtStatus.Text = "Status unknown: " + status;
-                        borderStatus.Background = new SolidColorBrush(Colors.Magenta);
-                        borderStatus.Visibility = Visibility.Visible;
                         break;
                 }
             });
@@ -443,14 +400,17 @@ namespace KLC_Finch
 
         private void btnReconnect_Click(object sender, RoutedEventArgs e)
         {
-            if (App.winCharm != null)
-            {
-                MessageBox.Show("Not yet implemented for Charm.");
-                return;
-            }
-
             if (session != null && session.ModuleRemoteControl != null)
                 session.ModuleRemoteControl.CloseViewer();
+
+            if (App.winCharm != null)
+            {
+                ConnectionManager.Switch(conn);
+                App.winCharm.DisconnectAndRemoveActiveSession();
+                App.winCharm.AddReal(vsa, shortToken, agentID);
+                this.Close();
+                return;
+            }
 
             WindowState tempState = this.WindowState;
             this.WindowState = WindowState.Normal;
@@ -489,7 +449,7 @@ namespace KLC_Finch
                 ctrlDashboard.txtRebootLast.ToolTip = session.agent.RebootLast.ToString();
             }
 
-            ctrlDashboard.UpdateDisplayData();
+            ctrlDashboard.UpdateDisplayData(((WindowAlternative)Window.GetWindow(this)).session);
             //ctrlDashboard.DisplayRAM(session.agent.RAMinGB);
             //ctrlDashboard.DisplayRCNotify(session.RCNotify);
             //ctrlDashboard.DisplayMachineNote(session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);

@@ -235,36 +235,106 @@
                 x:Name="tabAlt"
                 GotFocus="TabAlt_GotFocus"
                 Header="Session">
-                <Grid>
-                    <StackPanel Margin="5,0" HorizontalAlignment="Left">
-                        <Button
-                            x:Name="btnAlt"
-                            Width="100"
-                            Height="100"
-                            Margin="0,10,0,0"
-                            Click="BtnAlt_Click"
-                            Content="Alternative" />
-                        <Button
-                            x:Name="btnRCAdd"
-                            Width="100"
-                            Height="100"
-                            Margin="0,10,0,0"
-                            Click="BtnRCAdd_Click"
-                            Content="RC Shared" />
-                        <Button
-                            x:Name="btnRCClose"
-                            Width="100"
-                            Margin="0,10,0,0"
-                            Click="BtnRCClose_Click"
-                            Content="Close RC" />
-                        <Button
-                            x:Name="btnSessionClose"
-                            Width="100"
-                            Height="50"
-                            Margin="0,50,0,0"
-                            Click="BtnSessionClose_Click"
-                            Content="Close Session" />
+                <Grid Margin="10,10,10,10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="50" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        x:Name="borderStatus"
+                        Grid.ColumnSpan="3"
+                        Margin="-10,-10,-10,10"
+                        Background="Gray">
+                        <TextBlock
+                            x:Name="txtStatus"
+                            Margin="0,2"
+                            HorizontalAlignment="Center"
+                            Foreground="White"
+                            Text="Waiting for status update." />
+                    </Border>
+
+                    <Button
+                        x:Name="btnAlt"
+                        Grid.Row="1"
+                        Width="100"
+                        Height="100"
+                        Click="BtnAlt_Click"
+                        Content="Alternative" />
+
+                    <StackPanel Grid.Row="1" Grid.Column="2">
+                        <TextBlock
+                            x:Name="txtMachineName"
+                            Margin="0,0,0,15"
+                            FontWeight="Bold"
+                            Text="Machine Name" />
+                        <TextBlock
+                            x:Name="txtRebootLast"
+                            Grid.Row="0"
+                            Margin="0,0,0,5"
+                            Text="Last rebooted (fuzzy time) ago" />
                     </StackPanel>
+
+                    <Button
+                        x:Name="btnRCAdd"
+                        Grid.Row="3"
+                        Width="100"
+                        Height="100"
+                        Click="BtnRCAdd_Click"
+                        Content="RC Shared" />
+
+                    <StackPanel Grid.Row="3" Grid.Column="2">
+                        <TextBlock
+                            x:Name="txtRCNotify"
+                            Margin="0,0,0,15"
+                            Text="Remote control notify policy here." />
+
+                        <TextBlock
+                            x:Name="txtSpecialInstructions"
+                            Margin="0,0,0,5"
+                            FontWeight="Bold"
+                            Text="Special Instructions for this Machine" />
+                        <TextBlock
+                            x:Name="txtMachineNote"
+                            Margin="0,0,0,5"
+                            TextWrapping="Wrap">
+                            <TextBlock.Inlines>
+                                <Run x:Name="txtMachineNoteText" Text="Machine Note Here" />
+                                <Hyperlink x:Name="txtMachineNoteLink" RequestNavigate="txtMachineNoteLink_RequestNavigate">
+                                    <TextBlock x:Name="txtMachineNoteLinkText" Text="https://www.example.com" />
+                                </Hyperlink>
+                            </TextBlock.Inlines>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <Button
+                        x:Name="btnRCClose"
+                        Grid.Row="5"
+                        Width="100"
+                        Click="BtnRCClose_Click"
+                        Content="Close RC" />
+                    <Button
+                        x:Name="btnSessionClose"
+                        Grid.Row="7"
+                        Width="100"
+                        Height="50"
+                        Click="BtnSessionClose_Click"
+                        Content="Close Session" />
+                    <!--<local:controlDashboard
+                        x:Name="ctrlDashboard"
+                        Grid.Column="1"
+                        Loaded="ctrlDashboard_Loaded" />-->
                 </Grid>
             </TabItem>
             <TabItem

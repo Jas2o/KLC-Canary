@@ -54,7 +54,7 @@ namespace KLC_Finch
             Control = new ConnectionGroupItem(this);
         }
 
-        public void ShowAlternativeWindow(System.Windows.Controls.Control origin)
+        public void ShowAlternativeWindow(System.Windows.Controls.Control origin, int x = 0)
         {
             Window win = (App.winCharm != null ? App.winCharm : App.winStandaloneViewer);
             if (win == null || WinAlternative == null)
@@ -66,7 +66,7 @@ namespace KLC_Finch
             WinAlternative.Show(); //Necessary if hadn't been drawn yet
             WinAlternative.Focus(); //Necessary to bring on top
 
-            Point point = origin.TransformToAncestor(win).Transform(new Point(0, 0));
+            Point point = origin.TransformToAncestor(win).Transform(new Point(x, 0));
 
             if (win.WindowState == WindowState.Maximized)
             {
