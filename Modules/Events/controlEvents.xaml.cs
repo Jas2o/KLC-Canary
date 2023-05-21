@@ -97,6 +97,26 @@ namespace KLC_Finch {
             txtEventCategory.Content = ev.Category;
         }
 
+        private void txtFilter_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            Filter();
+        }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (!this.IsVisible)
+                return;
+
+            if (App.Settings.AltModulesStartAuto)
+            {
+                if (btnEventsStart.IsEnabled)
+                {
+                    btnEventsStart_Click(sender, e);
+                    btnEventsStart.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
         private void chkEventsFilter_CheckedChanged(object sender, RoutedEventArgs e)
         {
             Filter();
@@ -135,16 +155,5 @@ namespace KLC_Finch {
             }
         }
 
-        private void UserControl_Loaded(object sender, RoutedEventArgs e) {
-            if (!this.IsVisible)
-                return;
-
-            if (App.Settings.AltModulesStartAuto) {
-                if (btnEventsStart.IsEnabled) {
-                    btnEventsStart_Click(sender, e);
-                    btnEventsStart.Visibility = Visibility.Collapsed;
-                }
-            }
-        }
     }
 }

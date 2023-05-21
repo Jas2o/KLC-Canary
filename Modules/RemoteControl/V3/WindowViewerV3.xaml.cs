@@ -84,6 +84,7 @@ namespace KLC_Finch {
 
                 case 2:
                     rcv = new RCvCanvas(rc, state);
+                    toolShowMouse.Visibility = Visibility.Collapsed;
                     break;
             }
             placeholder.Child = rcv;

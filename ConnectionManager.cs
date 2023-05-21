@@ -47,12 +47,12 @@ namespace KLC_Finch
             return session;
         }
 
-        public static Connection AddReal(string agentID, string vsa, string shortToken, WindowAlternative.StatusCallback callback, WindowAlternative winAlt=null)
+        public static Connection AddReal(string agentID, string vsa, string shortToken, WindowAlternative.StatusCallback callbackS, WindowAlternative.ErrorCallback callbackE, WindowAlternative winAlt=null)
         {
             if (agentID == null || shortToken == null)
                 return null;
 
-            LiveConnectSession lc = new LiveConnectSession(vsa, shortToken, agentID, callback);
+            LiveConnectSession lc = new LiveConnectSession(vsa, shortToken, agentID, callbackS, callbackE);
             if (lc.Eirc == null)
             {
                 lc = null;

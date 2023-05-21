@@ -56,7 +56,7 @@ namespace KLC
 #if DEBUG
                     Console.WriteLine("A Close");
 #endif
-                    Session.Callback?.Invoke(EPStatus.UnavailableWsA);
+                    Session.CallbackS?.Invoke(EPStatus.UnavailableWsA);
                     ConnectionManager.Disconnect(Session.RandSessionGuid, 0);
 
                     if (Session.ModuleRemoteControl != null)
@@ -72,7 +72,7 @@ namespace KLC
                         //Console.WriteLine("Closing A because the agent is offline.");
                         Console.WriteLine("A: Endpoint is offline, will retry.");
 #endif
-                        Session.Callback?.Invoke(EPStatus.PeerOffline);
+                        Session.CallbackS?.Invoke(EPStatus.PeerOffline);
                         Task.Delay(10000).Wait(); // 10 seconds
                         ServerOnOpen(socket);
                         //HasCompleted = true;
@@ -87,7 +87,7 @@ namespace KLC
                             Console.WriteLine("A: PeerToPeerFailure");
 #endif
 
-                            Session.Callback?.Invoke(EPStatus.PeerToPeerFailure);
+                            Session.CallbackS?.Invoke(EPStatus.PeerToPeerFailure);
                             Task.Delay(10000).Wait(); // 10 seconds
                             ServerOnOpen(socket);
                         }

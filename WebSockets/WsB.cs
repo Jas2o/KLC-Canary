@@ -88,7 +88,10 @@ namespace KLC
                         }
                     }
                     else
-                        App.ShowUnhandledExceptionFromSrc(message, "Websocket B Control Agent");
+                    {
+                        Session.CallbackE("Websocket B Control Agent: " + message);
+                        //App.ShowUnhandledExceptionFromSrc(message, "Websocket B Control Agent");
+                    }
                     //Console.WriteLine("ServerB Message Unhandled [ControlAgent]: " + message);
                     break;
 
@@ -203,7 +206,7 @@ namespace KLC
 #if DEBUG
                 Console.WriteLine("B disconnect (control/agent)");
 #endif
-                Session.Callback?.Invoke(EPStatus.DisconnectedWsB);
+                Session.CallbackS?.Invoke(EPStatus.DisconnectedWsB);
                 //ConnectionManager.Disconnect(Session.RandSessionGuid, 1);
             }
 
@@ -233,7 +236,7 @@ namespace KLC
                 case "/control/agent":
                     ServerBsocketControlAgent = socket;
                     clientPortControlAgent = clientPort;
-                    Session.Callback?.Invoke(EPStatus.Connected);
+                    Session.CallbackS?.Invoke(EPStatus.Connected);
                     break;
 
                 case "/app/dashboard":
