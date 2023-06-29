@@ -286,6 +286,8 @@ namespace KLC_Finch
 
             if (session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac)
             {
+                btnRCPrivate.IsEnabled = false;
+                btnRCOneClick.IsEnabled = false;
                 btnRCNativeRDP.Visibility = Visibility.Collapsed;
 
                 tabCommand.Header = "Terminal";
@@ -295,6 +297,7 @@ namespace KLC_Finch
                 tabRegistry.Visibility = Visibility.Collapsed;
                 tabEvents.Visibility = Visibility.Collapsed;
                 tabServices.Visibility = Visibility.Collapsed;
+                tabToolbox.Visibility = Visibility.Collapsed;
             }
             else
             {
@@ -359,6 +362,39 @@ namespace KLC_Finch
             }
         }
 
+        private bool CheckIfAllowNewRCSession()
+        {
+            //For shared this should be expanded to check if the session requires approval
+
+            if (session.ModuleRemoteControl != null)
+            {
+                if (session.ModuleRemoteControl.IsPrivate && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible)
+                {
+                    using (TaskDialog dialog = new TaskDialog())
+                    {
+                        dialog.WindowTitle = "KLC-Finch";
+                        dialog.MainInstruction = "Lose current private RC?";
+                        dialog.MainIcon = TaskDialogIcon.Information;
+                        dialog.CenterParent = true;
+                        dialog.Content = "Are you sure you want to lose private session for a new session?";
+
+                        TaskDialogButton tdbYes = new TaskDialogButton(ButtonType.Yes);
+                        TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                        dialog.Buttons.Add(tdbYes);
+                        dialog.Buttons.Add(tdbCancel);
+
+                        TaskDialogButton button = dialog.ShowDialog(App.winStandalone);
+                        if (button == tdbYes)
+                            return true;
+                    }
+
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private void btnRCShared_Click(object sender, RoutedEventArgs e)
         {
             if (App.winCharm != null || session == null || session.WebsocketB == null || !session.WebsocketB.ControlAgentIsReady())
@@ -368,7 +404,12 @@ namespace KLC_Finch
                 return;
             }
             if (session.ModuleRemoteControl != null)
+            {
+                bool allow = CheckIfAllowNewRCSession();
+                if (!allow)
+                    return;
                 session.ModuleRemoteControl.CloseViewer();
+            }
 
             session.ModuleRemoteControl = new RemoteControl(session, RC.Shared);
             session.ModuleRemoteControl.Connect();
@@ -382,7 +423,12 @@ namespace KLC_Finch
                 return;
             }
             if (session.ModuleRemoteControl != null)
+            {
+                bool allow = CheckIfAllowNewRCSession();
+                if (!allow)
+                    return;
                 session.ModuleRemoteControl.CloseViewer();
+            }
 
             session.ModuleRemoteControl = new RemoteControl(session, RC.Private);
             session.ModuleRemoteControl.Connect();
@@ -393,7 +439,12 @@ namespace KLC_Finch
             if (App.winCharm != null || session == null || session.WebsocketB == null || !session.WebsocketB.ControlAgentIsReady())
                 return;
             if (session.ModuleRemoteControl != null)
+            {
+                bool allow = CheckIfAllowNewRCSession();
+                if (!allow)
+                    return;
                 session.ModuleRemoteControl.CloseViewer();
+            }
 
             session.WebsocketB.ControlAgentSendRDP_StateRequest(RC.OneClick);
 
@@ -412,7 +463,12 @@ namespace KLC_Finch
         private void btnReconnect_Click(object sender, RoutedEventArgs e)
         {
             if (session != null && session.ModuleRemoteControl != null)
+            {
+                bool allow = CheckIfAllowNewRCSession();
+                if (!allow)
+                    return;
                 session.ModuleRemoteControl.CloseViewer();
+            }
 
             if (App.winCharm != null)
             {
