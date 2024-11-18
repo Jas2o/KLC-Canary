@@ -38,7 +38,7 @@ namespace KLC_Finch
         private Timer timerClipboard;
         private Timer timerHealth;
         private WindowScreens winScreens;
-        private string[] arrAdmins = new string[] { "administrator", "brandadmin", "adminc", "company" };
+        private string[] arrAdmins = new string[] { "administrator" };
         private bool autotypeAlwaysConfirmed;
         private string clipboard = "";
         //private double fpsLast;

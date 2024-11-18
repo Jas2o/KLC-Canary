@@ -193,16 +193,6 @@
                                 <Button Content="Test 5 (disconnected)" Style="{StaticResource btnAgentDC}" />
                             </StackPanel>
                         </Border>
-
-                        <Label Content="c" Style="{StaticResource lblGroup}" />
-                        <Border BorderBrush="Black" BorderThickness="1">
-                            <StackPanel>
-                                <Button Content="NB" Style="{StaticResource btnAgent}" />
-                                <Button Content="- RC Shared" Style="{StaticResource btnRC}" />
-                                <Button Content="- Private" Style="{StaticResource btnRC}" />
-                                <Button Content="EIT-TEAMV" Style="{StaticResource btnAgent}" />
-                            </StackPanel>
-                        </Border>
                         -->
                     </ItemsControl>
                 </StackPanel>

@@ -27,7 +27,7 @@
             Grid.ColumnSpan="3"
             Margin="0,0,0,5"
             TextWrapping="Wrap">
-            Usually you would load your token via KLCProxy.
+            Usually you would load your token via KLC-Proxy.
         </TextBlock>
         <Label Grid.Row="1" Content="VSA:" />
         <ComboBox

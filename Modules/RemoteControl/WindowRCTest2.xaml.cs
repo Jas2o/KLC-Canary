@@ -55,7 +55,6 @@ namespace KLC_Finch {
         }
 
         private void BtnTemplate3_Click(object sender, RoutedEventArgs e) {
-            //NB at home
             txtInputJson.Text = example3;
         }
 
