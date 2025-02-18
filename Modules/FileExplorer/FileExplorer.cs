@@ -41,7 +41,7 @@ namespace KLC_Finch
         private Upload activeUpload;
         private string downloadDestination;
 
-        public FileExplorer(KLC.LiveConnectSession session)
+        public FileExplorer(KLC.ILiveConnectSession session)
         {
             selectedPath = new List<string>();
             //viewFiles = new List<KLCFile>();

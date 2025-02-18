@@ -15,7 +15,7 @@ namespace KLC
     public class WsB
     {
 
-        private readonly LiveConnectSession Session;
+        private readonly ILiveConnectSession Session;
 
         private readonly WebSocketServer ServerB;
         public int PortB { get; private set; }
@@ -27,7 +27,7 @@ namespace KLC
         private int clientPortControlAgent;
         private int clientPortRemoteControl;
 
-        public WsB(LiveConnectSession session, int portB)
+        public WsB(ILiveConnectSession session, int portB)
         {
             Session = session;
 
@@ -67,6 +67,8 @@ namespace KLC
         private void ServerB_MessageReceived(IWebSocketConnection socket, string message)
         {
             string path = socket.ConnectionInfo.Path.Replace("?Y2", "");
+            if (!path.Contains("dashboard"))
+                Console.WriteLine();
             switch (path)
             {
                 case "/control/agent":

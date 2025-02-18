@@ -29,7 +29,7 @@ namespace KLC_Finch {
             InitializeComponent();
         }
 
-        public void UpdateDisplayData(KLC.LiveConnectSession session) {
+        public void UpdateDisplayData(KLC.ILiveConnectSession session) {
             //KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
 
             txtUtilisationRAM.Text = "RAM: " + session.agent.RAMinGB + " GB";
@@ -38,7 +38,7 @@ namespace KLC_Finch {
         }
 
         public void btnDashboardStartData_Click(object sender, RoutedEventArgs e) {
-            KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
+            KLC.ILiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) { //Intentionally different
                 btnDashboardStartData.IsEnabled = false;
 
@@ -61,7 +61,7 @@ namespace KLC_Finch {
         }
 
         public void btnStaticImageStart_Click(object sender, RoutedEventArgs e) {
-            KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
+            KLC.ILiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) { //Intentionally different
                 btnStaticImageStart.IsEnabled = false;
                 lblStaticImage.Visibility = Visibility.Collapsed;
@@ -123,7 +123,9 @@ namespace KLC_Finch {
 
         private void btnStaticImageDumpLayout_Click(object sender, RoutedEventArgs e)
         {
-            Clipboard.SetDataObject(moduleStaticImage.DumpScreens());
+            string info = moduleStaticImage.DumpScreens();
+            ClipboardHelper.SetText(info);
+            //Clipboard.SetDataObject(info); //Has issues
         }
 
         public void UpdateTimer()

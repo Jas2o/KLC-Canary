@@ -25,7 +25,7 @@ namespace KLC_Finch
     {
         public ControlViewer Viewer;
         public RC Mode { get; private set; }
-        private readonly KLC.LiveConnectSession session;
+        private readonly KLC.ILiveConnectSession session;
         private bool captureScreen;
         private int clientB;
 
@@ -46,7 +46,7 @@ namespace KLC_Finch
         //private UploadRC fileUpload;
         //private DownloadRC fileDownload;
 
-        public RemoteControl(KLC.LiveConnectSession session, RC mode)
+        public RemoteControl(KLC.ILiveConnectSession session, RC mode)
         {
             this.session = session;
             this.Mode = mode;

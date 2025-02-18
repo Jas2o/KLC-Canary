@@ -121,7 +121,8 @@ namespace KLC_Finch
 
         private void LblRemoteDest_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            Clipboard.SetDataObject(rc.Files.RemoteDestination);
+            ClipboardHelper.SetText(rc.Files.RemoteDestination);
+            //Clipboard.SetDataObject(rc.Files.RemoteDestination); //Has issues
             lblRemoteDest.Foreground = Brushes.MidnightBlue;
         }
 
@@ -137,7 +138,8 @@ namespace KLC_Finch
 
         private void LblLocalDest_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            Clipboard.SetDataObject("%userprofile%\\Documents\\KRCTransferFiles\\");
+            ClipboardHelper.SetText("%userprofile%\\Documents\\KRCTransferFiles\\");
+            //Clipboard.SetDataObject("%userprofile%\\Documents\\KRCTransferFiles\\"); //Has issues
             lblLocalDest.Foreground = Brushes.MidnightBlue;
         }
 

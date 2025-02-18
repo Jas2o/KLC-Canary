@@ -21,7 +21,7 @@ namespace KLC_Finch {
         private readonly string AgentID;
         private readonly string vsa;
 
-        public Toolbox(KLC.LiveConnectSession session, ToolboxData toolboxData) {
+        public Toolbox(KLC.ILiveConnectSession session, ToolboxData toolboxData) {
             this.toolboxData = toolboxData;
 
             if (session != null) {
@@ -41,19 +41,23 @@ namespace KLC_Finch {
                 case "ScriptReady":
                     Console.WriteLine("Toolbox ready\r\n");
 
-                    IRestResponse response = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/folder//");
-                    dynamic first = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(response.Content);
+                    if (vsa == "Lanner") {
+                        Console.WriteLine("Skipped due to Lanner");
+                    } else {
+                        IRestResponse response = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/folder//");
+                        dynamic first = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(response.Content);
 
-                    toolboxData.Clear();
-                    foreach (dynamic second in first["Result"].Children()) {
-                        if ((bool)second["isFile"] == false) {
-                            string name = (string)second["Name"];
+                        toolboxData.Clear();
+                        foreach (dynamic second in first["Result"].Children()) {
+                            if ((bool)second["isFile"] == false) {
+                                string name = (string)second["Name"];
 
-                            IRestResponse response2 = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/folder//" + name);
-                            dynamic third = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(response2.Content);
+                                IRestResponse response2 = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/folder//" + name);
+                                dynamic third = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(response2.Content);
 
-                            foreach (dynamic forth in third["Result"].Children()) {
-                                toolboxData.Add(new ToolboxValue(forth));
+                                foreach (dynamic forth in third["Result"].Children()) {
+                                    toolboxData.Add(new ToolboxValue(forth));
+                                }
                             }
                         }
                     }
@@ -77,6 +81,11 @@ namespace KLC_Finch {
         }
 
         public void Execute(ToolboxValue tv) {
+            if (vsa == "Lanner") {
+                Console.WriteLine("Skipped due to Lanner");
+                return;
+            }
+
             IRestResponse response = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/endpointref/" + tv.ParentPath + "/" + tv.NameActual);
             dynamic result = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(response.Content);
 
@@ -98,6 +107,11 @@ namespace KLC_Finch {
         }
 
         public void Download(ToolboxValue tv, string folder) {
+            if (vsa == "Lanner") {
+                Console.WriteLine("Skipped due to Lanner");
+                return;
+            }
+
             string output = folder + "\\" + tv.NameDisplay;
             if (!File.Exists(output)) {
                 //The missing slash is intentional

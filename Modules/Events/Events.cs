@@ -26,7 +26,7 @@ namespace KLC_Finch.Modules {
         //private int scan = -1;
         private WindowAlternative.ErrorCallback CallbackE;
 
-        public Events(KLC.LiveConnectSession session, EventsData eventsData, ComboBox cmbLogTypes=null) {
+        public Events(KLC.ILiveConnectSession session, EventsData eventsData, ComboBox cmbLogTypes=null) {
             CallbackE = session.CallbackE;
             this.eventsData = eventsData;
             this.cmbLogTypes = cmbLogTypes;
@@ -68,7 +68,7 @@ namespace KLC_Finch.Modules {
                     }));
                     break;
                 case "setLogType": //Valid
-                case "SetLogType": //Errors
+                case "SetLogType": //Errors, capital S
                 case "GetEvents":
                     if (temp["events"] != null) {
                         if (temp["action"].ToString() != "GetEvents") {

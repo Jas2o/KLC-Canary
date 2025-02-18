@@ -24,11 +24,11 @@ namespace KLC_Finch
         private readonly StackPanel stackDisks;
         private IWebSocketConnection serverB;
 
-        private readonly KLC.LiveConnectSession session;
+        private readonly KLC.ILiveConnectSession session;
         private readonly System.Timers.Timer timerStart;
         private readonly System.Timers.Timer timerRefresh;
 
-        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks = null, TextBlock txtRAM = null, TextBlock txtCPU = null, ProgressBar progressCPU = null, ProgressBar progressRAM = null)
+        public Dashboard(KLC.ILiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks = null, TextBlock txtRAM = null, TextBlock txtCPU = null, ProgressBar progressCPU = null, ProgressBar progressRAM = null)
         {
             this.session = session;
             this.txtBox = txtBox;

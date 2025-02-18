@@ -383,9 +383,10 @@ namespace KLC_Finch
                 using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32))
                 {
                     RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
-                    if (subkey != null)
+                    if (subkey != null) {
                         val = subkey.GetValue("AgentGUID").ToString();
-                    subkey.Close();
+                        subkey.Close();
+                    }
                 }
 
                 if (val.Length > 0)
@@ -394,6 +395,19 @@ namespace KLC_Finch
             catch (Exception)
             {
             }
+        }
+
+        private void BtnAddSimulated_Click(object sender, RoutedEventArgs e) {
+            //btnAlt.IsEnabled = btnRCAdd.IsEnabled = false;
+
+            //WindowAlternative.StatusCallback callback = new WindowAlternative.StatusCallback(StatusUpdate);
+            //Connection conn = ConnectionManager.AddSimulated(charmCallback);
+
+            StatusCallback charmCallback = new StatusCallback(StatusUpdate);
+            WindowAlternative winAlt = new(Agent.VsaSim, Agent.VsaSim, Agent.VsaSim, OnConnect.AlsoRC, RC.Shared, charmCallback);
+            if (winAlt.conn == null)
+                return;
+            AddConnectionToUI(winAlt.conn, "Lanner");
         }
 
         public void AddReal(string vsa, string shortToken, string agentID)
@@ -627,27 +641,27 @@ namespace KLC_Finch
 
                 txtMachineName.Text = ConnectionManager.Active.LCSession.agent.Name;
 
-                if (ConnectionManager.Active.LCSession.agent.RebootLast == default(DateTime))
-                {
-                    txtRebootLast.Text = "Last reboot unknown";
-                    txtRebootLast.ToolTip = null;
-                }
-                else
-                {
-                    txtRebootLast.Text = "Last rebooted ~" + KLC.Util.FuzzyTimeAgo(ConnectionManager.Active.LCSession.agent.RebootLast);
-                    txtRebootLast.ToolTip = ConnectionManager.Active.LCSession.agent.RebootLast.ToString();
-                }
-
                 //txtUtilisationRAM.Text = "RAM: " + ConnectionManager.Active.LCSession.agent.RAMinGB + " GB";
                 txtRCNotify.Text = LibKaseyaLiveConnect.Text.RCNotify(ConnectionManager.Active.LCSession.RCNotify);
-                DisplayMachineNote(ConnectionManager.Active.LCSession.agent.MachineShowToolTip, ConnectionManager.Active.LCSession.agent.MachineNote, ConnectionManager.Active.LCSession.agent.MachineNoteLink);
+                //DisplayMachineNote(ConnectionManager.Active.LCSession.agent.MachineShowToolTip, ConnectionManager.Active.LCSession.agent.MachineNote, ConnectionManager.Active.LCSession.agent.MachineNoteLink);
             } else {
                 txtMachineName.Text = ConnectionManager.Active.Label;
-                txtRebootLast.Text = "N/A";
-                txtRebootLast.ToolTip = null;
+                //txtRebootLast.Text = "N/A";
+                //txtRebootLast.ToolTip = null;
                 txtRCNotify.Text = LibKaseyaLiveConnect.Text.RCNotify(NotifyApproval.None);
-                DisplayMachineNote(1, "Test Note");
+                //DisplayMachineNote(1, "Test Note");
             }
+
+
+            if (ConnectionManager.Active.LCSession.agent.RebootLast == default(DateTime)) {
+                txtRebootLast.Text = "Last reboot unknown";
+                txtRebootLast.ToolTip = null;
+            } else {
+                txtRebootLast.Text = "Last rebooted ~" + KLC.Util.FuzzyTimeAgo(ConnectionManager.Active.LCSession.agent.RebootLast);
+                txtRebootLast.ToolTip = ConnectionManager.Active.LCSession.agent.RebootLast.ToString();
+            }
+
+            DisplayMachineNote(ConnectionManager.Active.LCSession.agent.MachineShowToolTip, ConnectionManager.Active.LCSession.agent.MachineNote, ConnectionManager.Active.LCSession.agent.MachineNoteLink);
 
             StatusUpdate();
         }
@@ -692,5 +706,6 @@ namespace KLC_Finch
         {
             Process.Start(new ProcessStartInfo(e.Uri.ToString()) { UseShellExecute = true });
         }
+
     }
 }

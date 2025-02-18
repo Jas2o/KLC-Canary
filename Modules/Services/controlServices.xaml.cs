@@ -20,7 +20,7 @@ namespace KLC_Finch {
         }
 
         private void btnServicesStart_Click(object sender, RoutedEventArgs e) {
-            KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
+            KLC.ILiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
                 btnServicesStart.IsEnabled = false;
                 ToggleButtons(false);

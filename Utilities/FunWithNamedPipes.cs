@@ -81,7 +81,7 @@ namespace KLC_Finch
         public event NamedPipeMessageErrorHandler Error;
 
         static readonly String DEFAULT_PIPENAME = typeof(NamedPipeListener).FullName;
-        static readonly BinaryFormatter formatter = new BinaryFormatter();
+        //static readonly BinaryFormatter formatter = new BinaryFormatter();
 
         NamedPipeServerStream pipeServer;
         private bool IsUserUnique;

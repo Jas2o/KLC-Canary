@@ -41,7 +41,7 @@ namespace KLC_Finch {
         }
         */
 
-        public CommandTerminal(KLC.LiveConnectSession session, VirtualTerminalController vtController, DataConsumer dataPart) {
+        public CommandTerminal(KLC.ILiveConnectSession session, VirtualTerminalController vtController, DataConsumer dataPart) {
             this.vtController = vtController;
             this.dataPart = dataPart;
 

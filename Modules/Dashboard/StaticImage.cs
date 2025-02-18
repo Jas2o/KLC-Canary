@@ -22,7 +22,7 @@ namespace KLC_Finch {
         private readonly Image imgScreenPreview;
         private IWebSocketConnection serverB;
 
-        private readonly KLC.LiveConnectSession session;
+        private readonly KLC.ILiveConnectSession session;
         private readonly System.Timers.Timer timerStart;
         private readonly System.Timers.Timer timerRefresh;
         private readonly List<RCScreen> listScreen = new List<RCScreen>();
@@ -32,7 +32,7 @@ namespace KLC_Finch {
         private bool useReconnectHack; //This is used by Macs to get updated screen layout
         //private string jsonScreens;
 
-        public StaticImage(KLC.LiveConnectSession session, Image imgScreenPreview) {
+        public StaticImage(KLC.ILiveConnectSession session, Image imgScreenPreview) {
             this.session = session;
             this.imgScreenPreview = imgScreenPreview;
 

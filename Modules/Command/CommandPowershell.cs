@@ -24,7 +24,7 @@ namespace KLC_Finch {
         private readonly VirtualTerminalController vtController;
         private readonly DataConsumer dataPart;
 
-        public CommandPowershell(KLC.LiveConnectSession session, VirtualTerminalController vtController, DataConsumer dataPart) {
+        public CommandPowershell(KLC.ILiveConnectSession session, VirtualTerminalController vtController, DataConsumer dataPart) {
             this.vtController = vtController;
             this.dataPart = dataPart;
 

@@ -33,7 +33,7 @@ namespace KLC_Finch
 
         private void BtnRegistryStart_Click(object sender, RoutedEventArgs e)
         {
-            KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
+            KLC.ILiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null && session.WebsocketB.ControlAgentIsReady())
             {
                 btnRegistryStart.IsEnabled = false;

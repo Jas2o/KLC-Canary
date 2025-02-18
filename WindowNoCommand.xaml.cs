@@ -110,6 +110,26 @@ namespace KLC_Finch
 
         private void BtnLaunchRCTest_Click(object sender, RoutedEventArgs e)
         {
+            if(Keyboard.IsKeyDown(Key.LeftShift)) {
+                App.winStandalone = new WindowAlternative(Agent.VsaSim, Agent.VsaSim, Agent.VsaSim, Enums.OnConnect.NoAction, Enums.RC.Shared, null);
+                App.winStandalone.Show();
+
+                /*
+                //App.winStandaloneViewer = new WindowViewerV4();
+                //App.winStandaloneViewer.Show();
+
+                //ConnectionManager.Viewer = App.winStandaloneViewer.controlViewer;
+
+                Connection conn = ConnectionManager.AddSimulated(App.winStandalone.StatusUpdate);
+                RemoteControlTest rcTest = (RemoteControlTest)conn.RC;
+                if (!rcTest.LoopIsRunning())
+                    rcTest.LoopStart(ConnectionManager.Viewer);
+                */
+                return;
+            }
+
+            //--
+
             if (App.winStandaloneViewer != null && App.winStandaloneViewer.IsVisible)
             {
                 DialogResult result = System.Windows.Forms.MessageBox.Show("Disconnect any existing Remote Control window?", "KLC-Finch", MessageBoxButtons.YesNo, MessageBoxIcon.Question);

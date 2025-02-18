@@ -249,7 +249,8 @@ namespace KLC_Finch
                 more = true;
             }
 
-            Clipboard.SetDataObject(sb.ToString());
+            ClipboardHelper.SetText(sb.ToString());
+            //Clipboard.SetDataObject(sb.ToString()); //Has issues
         }
 
         public void UpdateStartScreens(string info)

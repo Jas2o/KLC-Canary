@@ -11,7 +11,7 @@ namespace KLC_Finch.Modules {
 
         private readonly ServicesData servicesData;
 
-        public Services(KLC.LiveConnectSession session, ServicesData servicesData) {
+        public Services(KLC.ILiveConnectSession session, ServicesData servicesData) {
             this.servicesData = servicesData;
 
             if (session != null)

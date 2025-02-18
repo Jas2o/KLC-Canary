@@ -49,7 +49,8 @@ namespace KLC_Finch
 
         private void btnAuthCopy_Click(object sender, RoutedEventArgs e)
         {
-            Clipboard.SetDataObject(txtAuthToken.Password);
+            ClipboardHelper.SetText(txtAuthToken.Password); //Has issues
+            //Clipboard.SetDataObject(txtAuthToken.Password); //Has issues
         }
 
         private void btnAuthGetFromKLC_Click(object sender, RoutedEventArgs e)

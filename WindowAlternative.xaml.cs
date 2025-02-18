@@ -1,7 +1,9 @@
-﻿using Microsoft.Win32;
+﻿using LibKaseya;
+using Microsoft.Win32;
 using Ookii.Dialogs.Wpf;
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,7 +22,7 @@ namespace KLC_Finch
         private static SolidColorBrush brushBlue2 = new SolidColorBrush(Colors.DodgerBlue);
 
         public Connection conn { get; private set; }
-        public KLC.LiveConnectSession session;
+        public KLC.ILiveConnectSession session;
         public bool socketActive { get; private set; }
         private string vsa;
         private string agentID;
@@ -68,9 +70,10 @@ namespace KLC_Finch
                 using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32))
                 {
                     RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X86"); //Actually in WOW6432Node
-                    if (subkey != null)
+                    if (subkey != null) {
                         vcRuntimeBld = (int)subkey.GetValue("Bld");
-                    subkey.Close();
+                        subkey.Close();
+                    }
                 }
             }
             catch (Exception)
@@ -103,7 +106,13 @@ namespace KLC_Finch
             this.charmCallback = charmCallback;
             StatusCallback callbackS = new StatusCallback(StatusUpdate);
             ErrorCallback callbackE = new ErrorCallback(ErrorUpdate);
-            conn = ConnectionManager.AddReal(agentID, vsa, shortToken, callbackS, callbackE, this);
+
+            if(vsa == LibKaseya.Agent.VsaSim) {
+                conn = ConnectionManager.AddSimulated(callbackS, callbackE, this);
+            } else {
+                conn = ConnectionManager.AddReal(agentID, vsa, shortToken, callbackS, callbackE, this);
+            }
+
             dialog.Dispose();
             if (conn == null || conn.LCSession == null)
                 return;
@@ -537,7 +546,8 @@ namespace KLC_Finch
 
             string filter = session.GetWiresharkFilter();
             if (filter != "")
-                Clipboard.SetDataObject(filter);
+                ClipboardHelper.SetText(filter);
+                //Clipboard.SetDataObject(filter); //Has issues
             //Clipboard.SetText(filter); //Apparently WPF clipboard has issues
         }
 
@@ -595,7 +605,8 @@ namespace KLC_Finch
         private void txtError_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if(e.ClickCount == 2)
-                Clipboard.SetDataObject(txtError.Text);
+                ClipboardHelper.SetText(txtError.Text);
+                //Clipboard.SetDataObject(txtError.Text); //Has issues
         }
     }
 }

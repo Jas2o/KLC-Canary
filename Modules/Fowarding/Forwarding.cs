@@ -20,7 +20,7 @@ namespace KLC_Finch
         private static readonly string modulename = "forwarding";
         private static readonly string basePathRDP = @"%localappdata%\Kaseya\Data\KaseyaLiveConnect\RDPConfig\";
 
-        private KLC.LiveConnectSession session;
+        private KLC.ILiveConnectSession session;
         private IWebSocketConnection serverB;
         private readonly string AgentID;
         private readonly string IPAddress;
@@ -31,7 +31,7 @@ namespace KLC_Finch
         public TextBox TxtAccess { get; }
         public Label LblStatus { get; }
 
-        public Forwarding(KLC.LiveConnectSession session, string ip, int port)
+        public Forwarding(KLC.ILiveConnectSession session, string ip, int port)
         {
             this.session = session;
             IPAddress = ip;
@@ -44,7 +44,7 @@ namespace KLC_Finch
             }
         }
 
-        public Forwarding(LiveConnectSession session, string ip, int port, TextBox txtAccess, Label lblStatus) : this(session, ip, port)
+        public Forwarding(ILiveConnectSession session, string ip, int port, TextBox txtAccess, Label lblStatus) : this(session, ip, port)
         {
             TxtAccess = txtAccess;
             LblStatus = lblStatus;

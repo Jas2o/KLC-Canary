@@ -17,6 +17,10 @@ namespace KLC.Structure
         public string session_jwt_p2;
         public string session_jwt_p3;
 
+        public EIRC() {
+            //Lanner
+        }
+
         public EIRC(string IRestContent)
         {
             json = IRestContent;

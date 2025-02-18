@@ -17,7 +17,7 @@ namespace KLC
     public class WsA
     {
 
-        private readonly LiveConnectSession Session;
+        private readonly ILiveConnectSession Session;
 
         private readonly WebSocketServer ServerA;
         private IWebSocketConnection ServerAsocket;
@@ -30,7 +30,7 @@ namespace KLC
         public static bool useInternalMITM = false; //Hawk
         private readonly bool useExternalMITM = false; //Port M
 
-        public WsA(LiveConnectSession session, int portA, int portB)
+        public WsA(ILiveConnectSession session, int portA, int portB)
         {
             Session = session;
             //Module = "A";

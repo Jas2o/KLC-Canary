@@ -20,7 +20,7 @@ namespace KLC_Finch
     /// </summary>
     public partial class controlForwarding : UserControl
     {
-        KLC.LiveConnectSession Session;
+        KLC.ILiveConnectSession Session;
 
         public controlForwarding()
         {

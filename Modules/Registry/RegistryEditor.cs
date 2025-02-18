@@ -41,7 +41,7 @@ namespace KLC_Finch {
         private readonly List<string> viewKeys;
         private readonly List<RegistryValue> viewValues;
 
-        public RegistryEditor(KLC.LiveConnectSession session, ListView lvRegistryKeys, DataGrid dgvRegistryValues, TextBox txtRegistryPath) {
+        public RegistryEditor(KLC.ILiveConnectSession session, ListView lvRegistryKeys, DataGrid dgvRegistryValues, TextBox txtRegistryPath) {
             this.lvRegistryKeys = lvRegistryKeys;
             this.dgvRegistryValues = dgvRegistryValues;
             this.txtRegistryPath = txtRegistryPath;

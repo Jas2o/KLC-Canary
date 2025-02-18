@@ -12,6 +12,10 @@ namespace KLC.Structure
         public string auth_jwt_p2;
         public string auth_jwt_p3;
 
+        public EAL() {
+            //Lanner
+        }
+
         public EAL(string IRestContent)
         {
             auth_jwt = IRestContent;

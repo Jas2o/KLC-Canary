@@ -16,7 +16,7 @@ namespace KLC_Finch
         public string GroupName { get; set; }
         public bool IsReal { get; private set; }
         public int Attempt { get; private set; }
-        public LiveConnectSession LCSession;
+        public ILiveConnectSession LCSession;
         private WindowAlternative WinAlternative;
         private IRemoteControl rc;
         public IRemoteControl RC {
@@ -29,10 +29,11 @@ namespace KLC_Finch
             }
         }
 
-        public Connection(RemoteControlTest test, string label="Test")
+        public Connection(FakeLiveConnectSession session, RemoteControlTest test, string label="Test")
         {
             IsReal = false;
-            LCSession = null;
+            //LCSession = null;
+            LCSession = session;
             rc = test;
             Label = label;
             GroupName = "Test";

@@ -1,24 +1,22 @@
 ﻿using KLC_Finch;
 using LibKaseya;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Net.Sockets;
-using System.Windows;
+using System.Linq;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Media;
+using System.Windows;
 using static LibKaseya.Enums;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace KLC {
+    public class FakeLiveConnectSession : ILiveConnectSession {
 
-    public class LiveConnectSession : ILiveConnectSession {
-        
-        public WsM WebsocketM { get; private set; }
-        public WsA WebsocketA { get; private set; }
-        public WsB WebsocketB { get; private set; }
+        public WsM WebsocketM { get; }
+        public WsA WebsocketA { get; }
+        public WsB WebsocketB { get; }
 
-        public string shorttoken; //KLC would normally change tokens during initial connection
         public string agentGuid { get; private set; }
         public Agent agent { get; private set; }
         public KaseyaAuth Auth { get; private set; }
@@ -46,81 +44,47 @@ namespace KLC {
         public Enums.EPStatus Status { get; set; }
         public int StatusConnectionAttempt { get; set; }
 
-        public LiveConnectSession(string vsa, string shortToken, string agentID, WindowAlternative.StatusCallback callbackS = null, WindowAlternative.ErrorCallback callbackE = null) {
-            agentGuid = agentID;
-            shorttoken = shortToken;
+        public FakeLiveConnectSession(WindowAlternative.StatusCallback callbackS = null, WindowAlternative.ErrorCallback callbackE = null) {
+            int PortB = LiveConnectSession.GetNewPort();
+
             CallbackS = callbackS;
             CallbackE = callbackE;
-            Kaseya.LoadToken(vsa, shortToken);
-            agent = new Agent(vsa, agentGuid);
+            agent = new Agent(Agent.VsaSim, PortB.ToString());
 
-            Auth = KaseyaAuth.ApiAuthX(shorttoken, vsa);
-            if (Auth == null) {
-                CallbackS?.Invoke(Enums.EPStatus.AuthFailed);
-                return;
-            }
-            shortToken = Auth.Token; //Works fine without this line, but it's something KLC does.
-            Eal = Api15.EndpointsAdminLogin(vsa, shorttoken);
+            RCNotify = NotifyApproval.None;
 
-            JObject rcNotifyPolicy = agent.GetRemoteControlNotifyPolicyFromAPI();
-            if (rcNotifyPolicy["Result"] != null) {
-                if (rcNotifyPolicy["Result"]["RemoteControlNotify"] != null)
-                    RCNotify = (Enums.NotifyApproval)(int)rcNotifyPolicy["Result"]["RemoteControlNotify"];
-            } else
-                return; //AgentID doesn't exist?
+            Auth = new KaseyaAuth();
+            Eal = new Structure.EAL();
+            Eirc = new Structure.EIRC();
 
-            ////dynamic agentSettings = agent.GetAgentSettingsInfoFromAPI(shorttoken);
-            ////dynamic auditSummary = agent.GetAgentAuditSummaryFromAPI(shorttoken);
-
-            try {
-                Eirc = Api15.EndpointsInitiateRemoteControl(vsa, shorttoken, agentGuid);
-            } catch (Exception) {
-                CallbackS?.Invoke(Enums.EPStatus.UnableToStartSession);
-                return;
-            }
-            RandSessionGuid = Guid.NewGuid().ToString();
-
-            //jsonAgentSettings = Api10.AssetmgmtAgentSettings(shorttoken, agentGuid);
-            //jsonAgentSummary = Api10.AssetmgmtAuditSummary(shorttoken, agentGuid);
-            //jsonRemoteControlNotifyPolicy = Api10.RemoteControlNotifyPolicy(shorttoken, agentGuid);
-
-            int PortB = GetNewPort();
-
-            //if(WsM.CertificateExists()) WebsocketM = new WsM(this, GetNewPort());
+            //--
 
             WebsocketB = new WsB(this, PortB);
-            WebsocketA = new WsA(this, GetNewPort(), PortB);
-        }
 
-        public static int GetNewPort() {
-            TcpListener tcpListener = new TcpListener(IPAddress.Parse("127.0.0.1"), 0);
-            tcpListener.Start();
-            int port = ((IPEndPoint)tcpListener.LocalEndpoint).Port;
-            tcpListener.Stop();
+            int PortA = LiveConnectSession.GetNewPort();
+            WebsocketA = new WsA(this, PortA, PortB);
 
-            return port;
+            NamedPipeListener.SendMessage("KLCMITM", true, PortA.ToString());
         }
 
         public void Close() {
-            //if (ModuleRemoteControl != null)
-                //ModuleRemoteControl.Disconnect();
             if (WebsocketB != null)
                 WebsocketB.Close();
-            if (WebsocketA != null)
-                WebsocketA.Close();
+            //if (WebsocketA != null)
+                //WebsocketA.Close();
         }
 
         public string GetWiresharkFilter() {
-            string filter = string.Format("(tcp.srcport == {0}) || (tcp.dstport == {0})", WebsocketA.PortA);
-            filter += string.Format(" || (tcp.srcport == {0}) || (tcp.dstport == {0})", WebsocketB.PortB);
+            string filter = string.Format("(tcp.srcport == {0}) || (tcp.dstport == {0})", WebsocketB.PortB);
+
+            //string filter = string.Format("(tcp.srcport == {0}) || (tcp.dstport == {0})", WebsocketA.PortA);
+            //filter += string.Format(" || (tcp.srcport == {0}) || (tcp.dstport == {0})", WebsocketB.PortB);
 
             return filter;
         }
 
-        public string GetStatusText(OnConnect directAction = OnConnect.NoAction)
-        {
-            switch (Status)
-            {
+        public string GetStatusText(OnConnect directAction = OnConnect.NoAction) {
+            switch (Status) {
                 case EPStatus.AttemptingToConnect:
                 case EPStatus.PeerOffline:
                 case EPStatus.PeerToPeerFailure:
@@ -131,19 +95,19 @@ namespace KLC {
 
                 case EPStatus.Connected:
                     return "Connected";
-                    
+
                 case EPStatus.UnavailableWsA:
                     return "Endpoint Unavailable (Web Socket A)";
-                    
+
                 case EPStatus.DisconnectedWsB:
                     return "Endpoint Disconnected (Web Socket B)";
-                    
+
                 case EPStatus.DisconnectedManual:
                     return "Manual Disconnection";
-                    
+
                 case EPStatus.UnableToStartSession:
                     return "Unable to start session with endpoint.";
-                    
+
                 case EPStatus.AuthFailed:
                     return "Authentication failure or cannot communicate with VSA.";
 
@@ -155,16 +119,14 @@ namespace KLC {
 
                 case EPStatus.NativeRDPEnded:
                     return "Native RDP - Ended";
-                    
+
                 default:
                     return "Status unknown: " + Status;
             }
         }
 
-        public Visibility GetStatusVisibility()
-        {
-            switch (Status)
-            {
+        public Visibility GetStatusVisibility() {
+            switch (Status) {
                 case EPStatus.Connected:
                 case EPStatus.NativeRDPEnded:
                     return Visibility.Collapsed;
@@ -194,10 +156,8 @@ namespace KLC {
         private static SolidColorBrush brushDimGray = new SolidColorBrush(Colors.DimGray);
         private static SolidColorBrush brushMagenta = new SolidColorBrush(Colors.Magenta);
 
-        public SolidColorBrush GetStatusColor()
-        {
-            switch (Status)
-            {
+        public SolidColorBrush GetStatusColor() {
+            switch (Status) {
                 case EPStatus.AttemptingToConnect:
                 case EPStatus.PeerOffline:
                 case EPStatus.PeerToPeerFailure:
@@ -227,5 +187,6 @@ namespace KLC {
                     return brushMagenta;
             }
         }
+
     }
 }

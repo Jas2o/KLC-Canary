@@ -36,13 +36,13 @@ namespace KLC_Finch
 
         public static Connection AddTest(string screenLayout, bool isMac, WindowAlternative.StatusCallback callback)
         {
-            Connection session = new Connection(new RemoteControlTest(screenLayout, isMac), "Test " + (TestNum++));
+            FakeLiveConnectSession lc = new FakeLiveConnectSession();
+
+            Connection session = new Connection(lc, new RemoteControlTest(screenLayout, isMac), "Test " + (TestNum++));
             listConnection.Add(session);
             Active = session;
 
             Viewer.rcSwitch = Active.RC;
-
-            callback?.Invoke(EPStatus.Connected);
 
             return session;
         }
@@ -62,6 +62,20 @@ namespace KLC_Finch
             Connection session = new Connection(lc, lc.agent.AgentNameOnly, winAlt);
             listConnection.Add(session);
             Active = session;
+
+            return session;
+        }
+
+        public static Connection AddSimulated(WindowAlternative.StatusCallback callbackS, WindowAlternative.ErrorCallback callbackE, WindowAlternative winAlt = null) {
+            string screenLayoutExample3 = @"{""default_screen"":131073,""screens"":[{""screen_height"":900,""screen_id"":131073,""screen_name"":""\\\\.\\DISPLAY1"",""screen_width"":1600,""screen_x"":0,""screen_y"":0},{""screen_height"":1080,""screen_id"":1245327,""screen_name"":""\\\\.\\DISPLAY2"",""screen_width"":1920,""screen_x"":1615,""screen_y"":-741},{""screen_height"":1080,""screen_id"":196759,""screen_name"":""\\\\.\\DISPLAY3"",""screen_width"":1920,""screen_x"":-305,""screen_y"":-1080}]}";
+
+            FakeLiveConnectSession lc = new FakeLiveConnectSession(callbackS, callbackE);
+
+            Connection session = new Connection(lc, new RemoteControlTest(screenLayoutExample3, false), "Lanner");
+            listConnection.Add(session);
+            Active = session;
+
+            //Viewer.rcSwitch = Active.RC;
 
             return session;
         }

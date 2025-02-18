@@ -539,7 +539,8 @@ namespace KLC_Finch
             Dispatcher.Invoke((Action)delegate {
                 toolClipboardGetText.Text = clipboard.Truncate(50);
                 if (clipboard.Length > 0)
-                    Clipboard.SetDataObject(clipboard);
+                    ClipboardHelper.SetText(clipboard);
+                    //Clipboard.SetDataObject(clipboard); //Has issues
                 else
                     Clipboard.Clear();
 
@@ -1010,7 +1011,8 @@ namespace KLC_Finch
         private void ToolClipboardGet_Click(object sender, RoutedEventArgs e)
         {
             if (clipboard.Length > 0)
-                Clipboard.SetDataObject(clipboard);
+                ClipboardHelper.SetText(clipboard);
+                //Clipboard.SetDataObject(clipboard); //Has issues
         }
 
         private void ToolClipboardPaste_Click(object sender, RoutedEventArgs e)

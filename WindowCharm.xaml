@@ -56,6 +56,11 @@
                             Click="BtnAddExampleTest_Click"
                             Content="Test" />
                         <Button
+                            x:Name="btnAddSimulated"
+                            Margin="0,5,0,0"
+                            Click="BtnAddSimulated_Click"
+                            Content="Simulated" />
+                        <Button
                             x:Name="btnAddThis"
                             Margin="0,5,0,0"
                             Click="BtnAddExampleThis_Click"

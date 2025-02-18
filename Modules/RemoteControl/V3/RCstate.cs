@@ -324,6 +324,9 @@ namespace KLC_Finch
             ListScreen.Clear();
             previousScreen = CurrentScreen = null;
 
+            if (json == null)
+                return;
+
             string default_screen = json["default_screen"].ToString();
             connectionStatus = ConnectionStatus.Connected;
 

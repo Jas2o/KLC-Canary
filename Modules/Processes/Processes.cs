@@ -23,7 +23,7 @@ namespace KLC_Finch.Modules {
 
         //private List<ProcessValue> listProcessValue;
 
-        public Processes(KLC.LiveConnectSession session, ProcessesData processesData) {
+        public Processes(KLC.ILiveConnectSession session, ProcessesData processesData) {
             this.processesData = processesData;
             //this.dgvProcesses = dgvProcesses;
             //this.txtBox = txtBox;
