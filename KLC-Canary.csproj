@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
     <OutputType>WinExe</OutputType>
     <RootNamespace>KLC_Finch</RootNamespace>
     <IsWebBootstrapper>false</IsWebBootstrapper>
@@ -71,8 +71,7 @@
     <Resource Include="Canary Icon.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LibrariesExternal\GLControl\OpenTK.WinForms\OpenTK.WinForms.csproj" />
-    <ProjectReference Include="..\LibrariesExternal\GLWpfControl\GLWpfControl.csproj" />
+    <ProjectReference Include="..\VP8.NET\VP8.NET\VP8.NET.vcxproj" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
@@ -90,13 +89,16 @@
     <PackageReference Include="CredentialManagement.Standard" Version="1.0.4" />
     <PackageReference Include="Fleck" Version="1.2.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-    <PackageReference Include="nucs.JsonSettings" Version="1.0.7" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="nucs.JsonSettings" Version="2.0.2" />
     <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />
-    <PackageReference Include="RestSharp" Version="106.15.0" />
+    <PackageReference Include="OpenTK.GLControl" Version="4.0.2" />
+    <PackageReference Include="OpenTK.GLWpfControl" Version="4.3.3" />
+    <PackageReference Include="RestSharp" Version="112.1.0" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.2" />
     <PackageReference Include="VtNetCore" Version="1.0.30" />
-    <PackageReference Include="OpenTK" Version="4.7.5" />
+    <PackageReference Include="OpenTK" Version="4.9.3" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="ControlSession.xaml.cs" />
@@ -125,11 +127,6 @@
     <Page Remove="WindowCharmV0.xaml" />
     <Page Remove="_Base\App.xaml" />
     <Page Remove="_Base\MainWindow.xaml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="VP8.NET">
-      <HintPath>..\VP8.NET\bin\Win64\Release\VP8.NET.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Modules\RemoteControl\WindowStreamQuality.xaml.cs">
