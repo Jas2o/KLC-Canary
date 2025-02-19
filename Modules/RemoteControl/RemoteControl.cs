@@ -2,9 +2,7 @@
 using LibKaseya;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using nucs.JsonSettings;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
@@ -18,8 +16,7 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using static LibKaseya.Enums;
 
-namespace KLC_Finch
-{
+namespace KLC_Finch {
 
     public class RemoteControl : IRemoteControl
     {

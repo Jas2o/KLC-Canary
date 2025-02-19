@@ -1,18 +1,14 @@
-﻿using LibKaseya;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using Ookii.Dialogs.Wpf;
 using System;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using static LibKaseya.Enums;
 
-namespace KLC_Finch
-{
+namespace KLC_Finch {
     /// <summary>
     /// Interaction logic for WindowAlternative.xaml
     /// </summary>

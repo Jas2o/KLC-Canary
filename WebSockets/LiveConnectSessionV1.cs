@@ -2,13 +2,11 @@
 using LibKaseya;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Windows;
 using System.Windows.Media;
 using static LibKaseya.Enums;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace KLC {
 

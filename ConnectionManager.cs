@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using KLC;
-using static LibKaseya.Enums;
 
-namespace KLC_Finch
-{
+namespace KLC_Finch {
     public static class ConnectionManager
     {
         private static List<ConnectionGroup> listGroup = new List<ConnectionGroup>();

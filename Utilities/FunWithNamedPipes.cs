@@ -1,10 +1,8 @@
 ﻿using System;
 using System.IO.Pipes;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
-namespace KLC_Finch
-{
+namespace KLC_Finch {
 
     /// <summary>Contains event data for <see cref="NamedPipeMessageReceiveHandler{TMessage}" /> events.</summary>
     /// <typeparam name="TMessage"></typeparam>

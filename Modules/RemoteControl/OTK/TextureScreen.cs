@@ -1,5 +1,4 @@
 ﻿using KLC_Finch;
-using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using System;
@@ -7,8 +6,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 
-namespace NTR
-{
+namespace NTR {
 
     public class TextureScreen
     {

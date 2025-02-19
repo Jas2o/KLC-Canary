@@ -11,10 +11,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using static LibKaseya.Enums;
-using static OpenTK.Windowing.GraphicsLibraryFramework.GLFWCallbacks;
 
-namespace KLC_Finch
-{
+namespace KLC_Finch {
     /// <summary>
     /// Interaction logic for WindowCharm.xaml
     /// </summary>

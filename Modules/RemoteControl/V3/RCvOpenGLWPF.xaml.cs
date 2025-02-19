@@ -1,15 +1,10 @@
 ﻿using NTR;
-using OpenTK;
 using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Wpf;
 using System;
-using System.Drawing;
-using System.Linq;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Shapes;
 using Rectangle = System.Drawing.Rectangle;
 
 namespace KLC_Finch {

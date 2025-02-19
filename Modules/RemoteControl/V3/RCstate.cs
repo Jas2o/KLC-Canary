@@ -7,11 +7,9 @@ using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Threading;
 using static LibKaseya.Enums;
 
-namespace KLC_Finch
-{
+namespace KLC_Finch {
 
     public enum ConnectionStatus
     {
