@@ -378,22 +378,32 @@ namespace KLC_Finch
         {
             string val = "";
 
-            try
-            {
-                using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32))
-                {
-                    RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
+            //first agent ID in registry that matches current vsa
+            try {
+                using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) {
+                    RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent"); //Actually in WOW6432Node
                     if (subkey != null) {
-                        val = subkey.GetValue("AgentGUID").ToString();
+                        string[] agents = subkey.GetSubKeyNames();
+                        foreach (string agent in agents) {
+                            RegistryKey agentkey = subkey.OpenSubKey(agent);
+                            if (agentkey != null) {
+                                string valAddress = (string)agentkey.GetValue("lastKnownConnAddr");
+                                string valGUID = (string)agentkey.GetValue("AgentGUID");
+                                if (valAddress != null && valGUID != null && valAddress == vsa) {
+                                    val = valGUID;
+                                    agentkey.Close();
+                                    break;
+                                }
+                                agentkey.Close();
+                            }
+                        }
                         subkey.Close();
                     }
                 }
 
                 if (val.Length > 0)
                     AddReal(vsa, authToken, val);
-            }
-            catch (Exception)
-            {
+            } catch (Exception) {
             }
         }
 
