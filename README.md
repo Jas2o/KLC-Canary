@@ -15,6 +15,8 @@ Typically KLC-Canary is launched by KLC-Proxy rather than directly - Proxy has s
 
 However when used with KLC-Lanner, Canary would be launched manually.
 
+![Screenshot of KLC-Canary](/Resources/KLC-Canary-Charm.png?raw=true)
+
 ## Required other repos to build (all the same as KLC-Finch)
 - LibKaseya
 - LibKaseyaAuth
